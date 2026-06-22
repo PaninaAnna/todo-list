@@ -308,8 +308,8 @@ export default function Board({ board, onUpdateBoard, sidebarOpen, onToggleSideb
               ☰
             </button>
           )}
-          <h2 className="text-2xl font-bold text-gray-800">{board.title}</h2>
-          <div className="flex-1 max-w-xs mx-4">
+          <h2 className="text-2xl font-bold text-gray-800 flex-shrink-0">{board.title}</h2>
+          <div className="flex-1 max-w-xs">
             <input
               type="text"
               value={searchQuery}
@@ -318,32 +318,44 @@ export default function Board({ board, onUpdateBoard, sidebarOpen, onToggleSideb
               className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg outline-none focus:border-blue-400"
             />
           </div>
-          <div className="ml-auto">
-            <h3 className="text-xs font-medium text-gray-400 uppercase mb-1.5">Колонки</h3>
-            <div className="flex gap-1.5">
-              <button
-                onClick={addColumn}
-                className="px-3 py-1.5 text-sm bg-gray-100 text-gray-600 rounded hover:bg-gray-200 transition-colors border border-gray-200"
-              >
-                + Добавить
-              </button>
-              <button
-                onClick={() => setIsEditingColumns(!isEditingColumns)}
-                className={`px-3 py-1.5 text-sm rounded transition-colors border ${
-                  isEditingColumns
-                    ? 'bg-blue-100 text-blue-700 border-blue-300'
-                    : 'bg-gray-100 text-gray-600 border-gray-200 hover:bg-gray-200'
-                }`}
-              >
-                {isEditingColumns ? '✓ Готово' : '✎ Изменить'}
-              </button>
-              <button
-                onClick={() => setShowArchive(true)}
-                className="px-3 py-1.5 text-sm bg-gray-100 text-gray-600 rounded hover:bg-gray-200 transition-colors border border-gray-200"
-              >
-                Архив
-              </button>
-            </div>
+          <div className="flex gap-1 ml-auto">
+            <button
+              onClick={() => setIsEditingColumns(!isEditingColumns)}
+              className={`w-8 h-8 flex items-center justify-center rounded-lg transition-colors border ${
+                isEditingColumns
+                  ? 'bg-blue-100 text-blue-700 border-blue-300'
+                  : 'bg-gray-100 text-gray-600 border-gray-200 hover:bg-gray-200'
+              }`}
+              title="Редактировать колонки"
+            >
+              {isEditingColumns ? (
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+              ) : (
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+                  <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                </svg>
+              )}
+            </button>
+            <button
+              onClick={() => setShowArchive(true)}
+              className="w-8 h-8 flex items-center justify-center bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors border border-gray-200"
+              title="Архив"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+                <path d="M4 3a2 2 0 100 4h12a2 2 0 100-4H4z" />
+                <path fillRule="evenodd" d="M3 8h14v7a2 2 0 01-2 2H5a2 2 0 01-2-2V8zm5 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" clipRule="evenodd" />
+              </svg>
+            </button>
+            <button
+              className="w-8 h-8 flex items-center justify-center bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors border border-gray-200"
+              title="Профиль"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+                <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+              </svg>
+            </button>
           </div>
         </div>
         {allTags.length > 0 && (
@@ -412,6 +424,18 @@ export default function Board({ board, onUpdateBoard, sidebarOpen, onToggleSideb
                 )}
               </Droppable>
             ))}
+            {isEditingColumns && (
+              <button
+                onClick={addColumn}
+                className="bg-gray-100 bg-opacity-60 rounded-lg p-4 flex-shrink-0 h-fit text-gray-400 hover:text-gray-600 hover:bg-gray-200 transition-colors border-2 border-dashed border-gray-300 hover:border-gray-400 flex items-center justify-center"
+                style={{ width: '288px' }}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5 mr-1">
+                  <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+                </svg>
+                Добавить колонку
+              </button>
+            )}
           </div>
         </DragDropContext>
       </div>
