@@ -4,18 +4,22 @@ import Card from './Card';
 
 interface ColumnProps {
   column: ColumnType;
+  index: number;
+  totalColumns: number;
   onAddCard: (columnId: string, title: string) => void;
   onEditCard: (cardId: string, title: string, description: string) => void;
   onDeleteCard: (cardId: string) => void;
   onRenameColumn: (columnId: string, title: string) => void;
   onDeleteColumn: (columnId: string) => void;
+  onMoveColumn: (columnId: string, direction: 'left' | 'right') => void;
   onUpdateCardTags: (cardId: string, tags: string[]) => void;
   allTags: string[];
   activeFilters: string[];
   onToggleFilter: (tag: string) => void;
+  isEditing: boolean;
 }
 
-export default function Column({ column, onAddCard, onEditCard, onDeleteCard, onRenameColumn, onDeleteColumn, onUpdateCardTags, allTags, activeFilters, onToggleFilter }: ColumnProps) {
+export default function Column({ column, index, totalColumns, onAddCard, onEditCard, onDeleteCard, onRenameColumn, onDeleteColumn, onMoveColumn, onUpdateCardTags, allTags, activeFilters, onToggleFilter, isEditing }: ColumnProps) {
   const [isAdding, setIsAdding] = useState(false);
   const [newTitle, setNewTitle] = useState('');
   const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -45,43 +49,68 @@ export default function Column({ column, onAddCard, onEditCard, onDeleteCard, on
   };
 
   return (
-    <div className="bg-gray-100 rounded-lg p-4 flex flex-col max-h-full min-h-0 w-full">
-      <div className="flex justify-between items-center mb-3 flex-shrink-0">
-        {isEditingTitle ? (
-          <input
-            ref={titleInputRef}
-            type="text"
-            value={editTitle}
-            onChange={(e) => setEditTitle(e.target.value)}
-            onBlur={handleSaveTitle}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') handleSaveTitle();
-              if (e.key === 'Escape') {
+    <div className={`bg-gray-100 rounded-lg p-4 flex flex-col max-h-full min-h-0 w-full transition-colors ${isEditing ? 'ring-2 ring-blue-300' : ''}`}>
+      <div className="flex justify-between items-start mb-1 flex-shrink-0">
+        <div className="flex-1 min-w-0">
+          {isEditingTitle ? (
+            <input
+              ref={titleInputRef}
+              type="text"
+              value={editTitle}
+              onChange={(e) => setEditTitle(e.target.value)}
+              onBlur={handleSaveTitle}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleSaveTitle();
+                if (e.key === 'Escape') {
+                  setEditTitle(column.title);
+                  setIsEditingTitle(false);
+                }
+              }}
+              className="font-semibold text-gray-700 border-b border-blue-400 outline-none bg-transparent w-full"
+            />
+          ) : (
+            <h3
+              className="font-semibold text-gray-700 cursor-pointer hover:text-blue-600 truncate"
+              onClick={() => {
                 setEditTitle(column.title);
-                setIsEditingTitle(false);
-              }
-            }}
-            className="font-semibold text-gray-700 border-b border-blue-400 outline-none bg-transparent w-full"
-          />
-        ) : (
-          <h3
-            className="font-semibold text-gray-700 cursor-pointer hover:text-blue-600 truncate"
-            onClick={() => {
-              setEditTitle(column.title);
-              setIsEditingTitle(true);
-            }}
+                setIsEditingTitle(true);
+              }}
+            >
+              {column.title}
+            </h3>
+          )}
+        </div>
+        {isEditing && (
+          <button
+            onClick={() => onDeleteColumn(column.id)}
+            className="text-red-400 hover:text-red-600 text-sm flex-shrink-0 ml-2"
+            title="Удалить колонку"
           >
-            {column.title}
-          </h3>
+            ✕
+          </button>
         )}
-        <button
-          onClick={() => onDeleteColumn(column.id)}
-          className="text-gray-400 hover:text-red-500 text-sm flex-shrink-0 ml-2"
-          title="Удалить колонку"
-        >
-          ✕
-        </button>
       </div>
+
+      {isEditing && (
+        <div className="flex justify-between mb-2 flex-shrink-0">
+          <button
+            onClick={() => onMoveColumn(column.id, 'left')}
+            disabled={index === 0}
+            className="px-2 py-0.5 text-sm text-gray-500 hover:text-gray-800 hover:bg-gray-200 rounded disabled:opacity-20 disabled:cursor-default transition-colors"
+            title="Переместить влево"
+          >
+            ←
+          </button>
+          <button
+            onClick={() => onMoveColumn(column.id, 'right')}
+            disabled={index === totalColumns - 1}
+            className="px-2 py-0.5 text-sm text-gray-500 hover:text-gray-800 hover:bg-gray-200 rounded disabled:opacity-20 disabled:cursor-default transition-colors"
+            title="Переместить вправо"
+          >
+            →
+          </button>
+        </div>
+      )}
 
       <div className="space-y-2 overflow-y-auto flex-1 min-h-0 mb-3">
         {column.cards.map((card, index) => (

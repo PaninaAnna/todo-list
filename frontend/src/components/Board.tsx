@@ -11,6 +11,7 @@ interface BoardProps {
 export default function Board({ board: initialBoard }: BoardProps) {
   const [board, setBoard] = useState<BoardType>(initialBoard);
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
+  const [isEditingColumns, setIsEditingColumns] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const handleWheel = (e: React.WheelEvent) => {
@@ -114,6 +115,20 @@ export default function Board({ board: initialBoard }: BoardProps) {
     setBoard(newBoard);
   };
 
+  const moveColumn = (columnId: string, direction: 'left' | 'right') => {
+    const newBoard = { ...board };
+    const columns = [...newBoard.columns];
+    const index = columns.findIndex((col) => col.id === columnId);
+
+    if (direction === 'left' && index > 0) {
+      [columns[index - 1], columns[index]] = [columns[index], columns[index - 1]];
+    } else if (direction === 'right' && index < columns.length - 1) {
+      [columns[index], columns[index + 1]] = [columns[index + 1], columns[index]];
+    }
+
+    setBoard({ ...newBoard, columns });
+  };
+
   const addColumn = () => {
     const newColumn = {
       id: `col-${Date.now()}`,
@@ -183,14 +198,29 @@ export default function Board({ board: initialBoard }: BoardProps) {
   return (
     <div className="h-screen flex flex-col">
       <div className="p-6 pb-0 flex-shrink-0">
-        <div className="flex justify-between items-center mb-3">
+        <div className="flex justify-between items-start mb-3">
           <h2 className="text-2xl font-bold text-gray-800">{board.title}</h2>
-          <button
-            onClick={addColumn}
-            className="px-4 py-2 text-sm bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
-          >
-            + Добавить колонку
-          </button>
+          <div>
+            <h3 className="text-xs font-medium text-gray-400 uppercase mb-1.5">Колонки</h3>
+            <div className="flex gap-1.5">
+              <button
+                onClick={addColumn}
+                className="px-3 py-1.5 text-sm bg-gray-100 text-gray-600 rounded hover:bg-gray-200 transition-colors border border-gray-200"
+              >
+                + Добавить
+              </button>
+              <button
+                onClick={() => setIsEditingColumns(!isEditingColumns)}
+                className={`px-3 py-1.5 text-sm rounded transition-colors border ${
+                  isEditingColumns
+                    ? 'bg-blue-100 text-blue-700 border-blue-300'
+                    : 'bg-gray-100 text-gray-600 border-gray-200 hover:bg-gray-200'
+                }`}
+              >
+                {isEditingColumns ? '✓ Готово' : '✎ Изменить'}
+              </button>
+            </div>
+          </div>
         </div>
         {allTags.length > 0 && (
           <div className="flex items-center gap-2 flex-wrap">
@@ -228,7 +258,7 @@ export default function Board({ board: initialBoard }: BoardProps) {
       >
         <DragDropContext onDragEnd={onDragEnd}>
           <div className="flex gap-4 h-full">
-            {filteredBoard.columns.map((column) => (
+            {filteredBoard.columns.map((column, index) => (
               <Droppable key={column.id} droppableId={column.id}>
                 {(provided) => (
                   <div
@@ -238,15 +268,19 @@ export default function Board({ board: initialBoard }: BoardProps) {
                   >
                     <Column
                       column={column}
+                      index={index}
+                      totalColumns={filteredBoard.columns.length}
                       onAddCard={addCard}
                       onEditCard={editCard}
                       onDeleteCard={deleteCard}
                       onRenameColumn={renameColumn}
                       onDeleteColumn={deleteColumn}
+                      onMoveColumn={moveColumn}
                       onUpdateCardTags={updateCardTags}
                       allTags={allTags}
                       activeFilters={activeFilters}
                       onToggleFilter={toggleFilter}
+                      isEditing={isEditingColumns}
                     />
                     {provided.placeholder}
                   </div>
