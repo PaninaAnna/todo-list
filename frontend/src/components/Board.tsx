@@ -14,6 +14,7 @@ interface BoardProps {
 
 export default function Board({ board, onUpdateBoard, sidebarOpen, onToggleSidebar }: BoardProps) {
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
   const [isEditingColumns, setIsEditingColumns] = useState(false);
   const [showArchive, setShowArchive] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -271,9 +272,17 @@ export default function Board({ board, onUpdateBoard, sidebarOpen, onToggleSideb
     setActiveFilters([]);
   };
 
-  const filterCard = (card: { tags: string[] }) => {
-    if (activeFilters.length === 0) return true;
-    return activeFilters.every((tag) => card.tags.includes(tag));
+  const searchFilterCard = (card: { title: string; description: string; tags: string[] }) => {
+    const matchesTags = activeFilters.length === 0 || activeFilters.every((tag) => card.tags.includes(tag));
+    if (!matchesTags) return false;
+
+    if (searchQuery.trim() === '') return true;
+
+    const query = searchQuery.toLowerCase();
+    return (
+      card.title.toLowerCase().includes(query) ||
+      card.description.toLowerCase().includes(query)
+    );
   };
 
   const filteredBoard: BoardType = useMemo(() => {
@@ -281,10 +290,10 @@ export default function Board({ board, onUpdateBoard, sidebarOpen, onToggleSideb
       ...board,
       columns: board.columns.map((col) => ({
         ...col,
-        cards: col.cards.filter(filterCard),
+        cards: col.cards.filter(searchFilterCard),
       })),
     };
-  }, [board, activeFilters]);
+  }, [board, activeFilters, searchQuery]);
 
   return (
     <div className="h-full flex flex-col">
@@ -300,6 +309,15 @@ export default function Board({ board, onUpdateBoard, sidebarOpen, onToggleSideb
             </button>
           )}
           <h2 className="text-2xl font-bold text-gray-800">{board.title}</h2>
+          <div className="flex-1 max-w-xs mx-4">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Поиск по карточкам..."
+              className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg outline-none focus:border-blue-400"
+            />
+          </div>
           <div className="ml-auto">
             <h3 className="text-xs font-medium text-gray-400 uppercase mb-1.5">Колонки</h3>
             <div className="flex gap-1.5">
