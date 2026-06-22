@@ -11,9 +11,11 @@ interface ColumnProps {
   onDeleteColumn: (columnId: string) => void;
   onUpdateCardTags: (cardId: string, tags: string[]) => void;
   allTags: string[];
+  activeFilters: string[];
+  onToggleFilter: (tag: string) => void;
 }
 
-export default function Column({ column, onAddCard, onEditCard, onDeleteCard, onRenameColumn, onDeleteColumn, onUpdateCardTags, allTags }: ColumnProps) {
+export default function Column({ column, onAddCard, onEditCard, onDeleteCard, onRenameColumn, onDeleteColumn, onUpdateCardTags, allTags, activeFilters, onToggleFilter }: ColumnProps) {
   const [isAdding, setIsAdding] = useState(false);
   const [newTitle, setNewTitle] = useState('');
   const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -91,8 +93,13 @@ export default function Column({ column, onAddCard, onEditCard, onDeleteCard, on
             onDelete={onDeleteCard}
             onUpdateTags={onUpdateCardTags}
             allTags={allTags}
+            activeFilters={activeFilters}
+            onToggleFilter={onToggleFilter}
           />
         ))}
+        {column.cards.length === 0 && (
+          <p className="text-sm text-gray-400 text-center py-4">Нет карточек</p>
+        )}
       </div>
 
       {isAdding ? (

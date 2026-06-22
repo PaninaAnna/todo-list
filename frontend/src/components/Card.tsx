@@ -10,9 +10,11 @@ interface CardProps {
   onDelete: (cardId: string) => void;
   onUpdateTags: (cardId: string, tags: string[]) => void;
   allTags: string[];
+  activeFilters: string[];
+  onToggleFilter: (tag: string) => void;
 }
 
-export default function Card({ card, index, onEdit, onDelete, onUpdateTags, allTags }: CardProps) {
+export default function Card({ card, index, onEdit, onDelete, onUpdateTags, allTags, activeFilters, onToggleFilter }: CardProps) {
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [isEditingDescription, setIsEditingDescription] = useState(false);
   const [editTitle, setEditTitle] = useState(card.title);
@@ -164,6 +166,8 @@ export default function Card({ card, index, onEdit, onDelete, onUpdateTags, allT
                   allTags={allTags}
                   onAddTag={handleAddTag}
                   onRemoveTag={handleRemoveTag}
+                  activeFilters={activeFilters}
+                  onToggleFilter={onToggleFilter}
                 />
               </div>
             </div>

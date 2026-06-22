@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useMemo, useEffect } from 'react';
 import { DragDropContext, Droppable } from '@hello-pangea/dnd';
 import type { DropResult } from '@hello-pangea/dnd';
 import type { Board as BoardType } from '../types';
@@ -10,6 +10,7 @@ interface BoardProps {
 
 export default function Board({ board: initialBoard }: BoardProps) {
   const [board, setBoard] = useState<BoardType>(initialBoard);
+  const [activeFilters, setActiveFilters] = useState<string[]>([]);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const handleWheel = (e: React.WheelEvent) => {
@@ -141,20 +142,84 @@ export default function Board({ board: initialBoard }: BoardProps) {
     setBoard({ ...newBoard, columns });
   };
 
-  const allTags = board.columns
-    .flatMap((col) => col.cards.flatMap((card) => card.tags))
-    .filter((tag, index, arr) => arr.indexOf(tag) === index);
+  const allTags = useMemo(() => {
+    return board.columns
+      .flatMap((col) => col.cards.flatMap((card) => card.tags))
+      .filter((tag, index, arr) => arr.indexOf(tag) === index);
+  }, [board.columns]);
+
+  useEffect(() => {
+    if (activeFilters.length === 0) return;
+    setActiveFilters((prev) =>
+      prev.filter((tag) => allTags.includes(tag))
+    );
+  }, [allTags]);
+
+  const toggleFilter = (tag: string) => {
+    setActiveFilters((prev) =>
+      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
+    );
+  };
+
+  const clearFilters = () => {
+    setActiveFilters([]);
+  };
+
+  const filterCard = (card: { tags: string[] }) => {
+    if (activeFilters.length === 0) return true;
+    return activeFilters.every((tag) => card.tags.includes(tag));
+  };
+
+  const filteredBoard: BoardType = useMemo(() => {
+    return {
+      ...board,
+      columns: board.columns.map((col) => ({
+        ...col,
+        cards: col.cards.filter(filterCard),
+      })),
+    };
+  }, [board, activeFilters]);
 
   return (
     <div className="h-screen flex flex-col">
-      <div className="p-6 pb-0 flex-shrink-0 flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-gray-800">{board.title}</h2>
-        <button
-          onClick={addColumn}
-          className="px-4 py-2 text-sm bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
-        >
-          + Добавить колонку
-        </button>
+      <div className="p-6 pb-0 flex-shrink-0">
+        <div className="flex justify-between items-center mb-3">
+          <h2 className="text-2xl font-bold text-gray-800">{board.title}</h2>
+          <button
+            onClick={addColumn}
+            className="px-4 py-2 text-sm bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+          >
+            + Добавить колонку
+          </button>
+        </div>
+        {allTags.length > 0 && (
+          <div className="flex items-center gap-2 flex-wrap">
+            {allTags.map((tag) => {
+              const isActive = activeFilters.includes(tag);
+              return (
+                <button
+                  key={tag}
+                  onClick={() => toggleFilter(tag)}
+                  className={`text-xs px-2 py-0.5 rounded transition-colors ${
+                    isActive
+                      ? 'bg-blue-500 text-white'
+                      : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                  }`}
+                >
+                  {tag}
+                </button>
+              );
+            })}
+            {activeFilters.length > 0 && (
+              <button
+                onClick={clearFilters}
+                className="text-xs text-gray-400 hover:text-gray-600 underline"
+              >
+                Сбросить
+              </button>
+            )}
+          </div>
+        )}
       </div>
       <div
         ref={scrollContainerRef}
@@ -163,7 +228,7 @@ export default function Board({ board: initialBoard }: BoardProps) {
       >
         <DragDropContext onDragEnd={onDragEnd}>
           <div className="flex gap-4 h-full">
-            {board.columns.map((column) => (
+            {filteredBoard.columns.map((column) => (
               <Droppable key={column.id} droppableId={column.id}>
                 {(provided) => (
                   <div
@@ -180,6 +245,8 @@ export default function Board({ board: initialBoard }: BoardProps) {
                       onDeleteColumn={deleteColumn}
                       onUpdateCardTags={updateCardTags}
                       allTags={allTags}
+                      activeFilters={activeFilters}
+                      onToggleFilter={toggleFilter}
                     />
                     {provided.placeholder}
                   </div>

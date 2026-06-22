@@ -5,9 +5,11 @@ interface TagInputProps {
   allTags: string[];
   onAddTag: (tag: string) => void;
   onRemoveTag: (tag: string) => void;
+  activeFilters: string[];
+  onToggleFilter: (tag: string) => void;
 }
 
-export default function TagInput({ tags, allTags, onAddTag, onRemoveTag }: TagInputProps) {
+export default function TagInput({ tags, allTags, onAddTag, onRemoveTag, activeFilters, onToggleFilter }: TagInputProps) {
   const [isAdding, setIsAdding] = useState(false);
   const [inputValue, setInputValue] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -75,18 +77,26 @@ export default function TagInput({ tags, allTags, onAddTag, onRemoveTag }: TagIn
     <div className="relative" ref={containerRef}>
       <div className="flex flex-wrap gap-1 items-center">
         {tags.map((tag) => (
-          <span
+          <button
             key={tag}
-            className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded flex items-center gap-1"
+            onClick={() => onToggleFilter(tag)}
+            className={`text-xs px-2 py-0.5 rounded flex items-center gap-1 transition-colors ${
+              activeFilters.includes(tag)
+                ? 'bg-blue-500 text-white'
+                : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+            }`}
           >
             {tag}
-            <button
-              onClick={() => onRemoveTag(tag)}
-              className="text-blue-400 hover:text-blue-700"
+            <span
+              onClick={(e) => {
+                e.stopPropagation();
+                onRemoveTag(tag);
+              }}
+              className="hover:text-red-300 cursor-pointer"
             >
               ×
-            </button>
-          </span>
+            </span>
+          </button>
         ))}
         {isAdding ? (
           <input
