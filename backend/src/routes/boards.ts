@@ -60,8 +60,17 @@ router.post('/', auth, async (req: AuthRequest, res: Response) => {
     }
 
     const id = uuidv4();
-    db.prepare('INSERT INTO boards (id, title, ownerId) VALUES (?, ?, ?)').run(id, title, req.userId);
-
+    const columnId = uuidv4();
+    
+    const insertBoard = db.transaction(() => {
+      db.prepare('INSERT INTO boards (id, title, ownerId) VALUES (?, ?, ?)').run(id, title, req.userId);
+      db.prepare('INSERT INTO columns (id, title, "order", boardId) VALUES (?, ?, 0, ?)').run(
+        columnId, 'To Do', id
+      );
+    });
+    
+    insertBoard();
+    
     const board = db.prepare('SELECT * FROM boards WHERE id = ?').get(id);
     res.json(parseBoard(board));
   } catch (error) {
