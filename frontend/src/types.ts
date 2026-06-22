@@ -11,12 +11,29 @@ export interface Column {
   cards: Card[];
 }
 
+export interface ArchivedCard {
+  id: string;
+  title: string;
+  description: string;
+  tags: string[];
+  columnId: string;
+  columnTitle: string;
+}
+
+export interface ArchivedColumn {
+  id: string;
+  title: string;
+  cards: Card[];
+}
+
 export interface Board {
   id: string;
   title: string;
   columns: Column[];
   ownerId: string;
   memberIds: string[];
+  archivedCards: ArchivedCard[];
+  archivedColumns: ArchivedColumn[];
 }
 
 export type Role = 'owner' | 'editor' | 'viewer';

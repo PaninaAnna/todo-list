@@ -12,6 +12,8 @@ export const mockBoards: Board[] = [
     title: 'Учебный проект',
     ownerId: 'user-1',
     memberIds: [],
+    archivedCards: [],
+    archivedColumns: [],
     columns: [
       {
         id: 'col-1',
@@ -42,6 +44,8 @@ export const mockBoards: Board[] = [
     title: 'Домашние дела',
     ownerId: 'user-1',
     memberIds: [],
+    archivedCards: [],
+    archivedColumns: [],
     columns: [
       {
         id: 'col-4',

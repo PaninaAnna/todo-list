@@ -29,6 +29,8 @@ export default function App() {
       columns: [],
       ownerId: 'user-1',
       memberIds: [],
+      archivedCards: [],
+      archivedColumns: [],
     };
 
     setBoards((prev) => [...prev, newBoard]);

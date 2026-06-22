@@ -3,6 +3,7 @@ import { DragDropContext, Droppable } from '@hello-pangea/dnd';
 import type { DropResult } from '@hello-pangea/dnd';
 import type { Board as BoardType } from '../types';
 import Column from './Column';
+import ArchiveModal from './ArchiveModal';
 
 interface BoardProps {
   board: BoardType;
@@ -14,6 +15,7 @@ interface BoardProps {
 export default function Board({ board, onUpdateBoard, sidebarOpen, onToggleSidebar }: BoardProps) {
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
   const [isEditingColumns, setIsEditingColumns] = useState(false);
+  const [showArchive, setShowArchive] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const handleWheel = (e: React.WheelEvent) => {
@@ -92,7 +94,22 @@ export default function Board({ board, onUpdateBoard, sidebarOpen, onToggleSideb
     const columns = [...newBoard.columns];
 
     for (const col of columns) {
-      col.cards = col.cards.filter((c) => c.id !== cardId);
+      const cardIndex = col.cards.findIndex((c) => c.id === cardId);
+      if (cardIndex !== -1) {
+        const [removedCard] = col.cards.splice(cardIndex, 1);
+        newBoard.archivedCards = [
+          ...newBoard.archivedCards,
+          {
+            id: removedCard.id,
+            title: removedCard.title,
+            description: removedCard.description,
+            tags: removedCard.tags,
+            columnId: col.id,
+            columnTitle: col.title,
+          },
+        ];
+        break;
+      }
     }
 
     onUpdateBoard({ ...newBoard, columns });
@@ -112,7 +129,12 @@ export default function Board({ board, onUpdateBoard, sidebarOpen, onToggleSideb
 
   const deleteColumn = (columnId: string) => {
     const newBoard = { ...board };
-    newBoard.columns = newBoard.columns.filter((col) => col.id !== columnId);
+    const columnIndex = newBoard.columns.findIndex((col) => col.id === columnId);
+
+    if (columnIndex !== -1) {
+      const [removedColumn] = newBoard.columns.splice(columnIndex, 1);
+      newBoard.archivedColumns = [...newBoard.archivedColumns, removedColumn];
+    }
 
     onUpdateBoard(newBoard);
   };
@@ -157,6 +179,55 @@ export default function Board({ board, onUpdateBoard, sidebarOpen, onToggleSideb
     }
 
     onUpdateBoard({ ...newBoard, columns });
+  };
+
+  const restoreCard = (cardId: string) => {
+    const newBoard = { ...board };
+    const cardIndex = newBoard.archivedCards.findIndex((c) => c.id === cardId);
+
+    if (cardIndex === -1) return;
+
+    const [restoredCard] = newBoard.archivedCards.splice(cardIndex, 1);
+
+    let targetColumn = newBoard.columns.find((col) => col.id === restoredCard.columnId);
+    if (!targetColumn) {
+      targetColumn = newBoard.columns[0];
+    }
+
+    if (targetColumn) {
+      targetColumn.cards.push({
+        id: restoredCard.id,
+        title: restoredCard.title,
+        description: restoredCard.description,
+        tags: restoredCard.tags,
+      });
+    }
+
+    onUpdateBoard(newBoard);
+  };
+
+  const deleteCardForever = (cardId: string) => {
+    const newBoard = { ...board };
+    newBoard.archivedCards = newBoard.archivedCards.filter((c) => c.id !== cardId);
+    onUpdateBoard(newBoard);
+  };
+
+  const restoreColumn = (columnId: string) => {
+    const newBoard = { ...board };
+    const colIndex = newBoard.archivedColumns.findIndex((c) => c.id === columnId);
+
+    if (colIndex === -1) return;
+
+    const [restoredColumn] = newBoard.archivedColumns.splice(colIndex, 1);
+    newBoard.columns.push(restoredColumn);
+
+    onUpdateBoard(newBoard);
+  };
+
+  const deleteColumnForever = (columnId: string) => {
+    const newBoard = { ...board };
+    newBoard.archivedColumns = newBoard.archivedColumns.filter((c) => c.id !== columnId);
+    onUpdateBoard(newBoard);
   };
 
   const allTags = useMemo(() => {
@@ -230,6 +301,12 @@ export default function Board({ board, onUpdateBoard, sidebarOpen, onToggleSideb
               >
                 {isEditingColumns ? '✓ Готово' : '✎ Изменить'}
               </button>
+              <button
+                onClick={() => setShowArchive(true)}
+                className="px-3 py-1.5 text-sm bg-gray-100 text-gray-600 rounded hover:bg-gray-200 transition-colors border border-gray-200"
+              >
+                Архив
+              </button>
             </div>
           </div>
         </div>
@@ -301,6 +378,17 @@ export default function Board({ board, onUpdateBoard, sidebarOpen, onToggleSideb
           </div>
         </DragDropContext>
       </div>
+      {showArchive && (
+        <ArchiveModal
+          archivedCards={board.archivedCards}
+          archivedColumns={board.archivedColumns}
+          onRestoreCard={restoreCard}
+          onDeleteCardForever={deleteCardForever}
+          onRestoreColumn={restoreColumn}
+          onDeleteColumnForever={deleteColumnForever}
+          onClose={() => setShowArchive(false)}
+        />
+      )}
     </div>
   );
 }
