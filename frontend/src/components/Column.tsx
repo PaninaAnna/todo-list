@@ -9,9 +9,11 @@ interface ColumnProps {
   onDeleteCard: (cardId: string) => void;
   onRenameColumn: (columnId: string, title: string) => void;
   onDeleteColumn: (columnId: string) => void;
+  onUpdateCardTags: (cardId: string, tags: string[]) => void;
+  allTags: string[];
 }
 
-export default function Column({ column, onAddCard, onEditCard, onDeleteCard, onRenameColumn, onDeleteColumn }: ColumnProps) {
+export default function Column({ column, onAddCard, onEditCard, onDeleteCard, onRenameColumn, onDeleteColumn, onUpdateCardTags, allTags }: ColumnProps) {
   const [isAdding, setIsAdding] = useState(false);
   const [newTitle, setNewTitle] = useState('');
   const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -87,6 +89,8 @@ export default function Column({ column, onAddCard, onEditCard, onDeleteCard, on
             index={index}
             onEdit={onEditCard}
             onDelete={onDeleteCard}
+            onUpdateTags={onUpdateCardTags}
+            allTags={allTags}
           />
         ))}
       </div>

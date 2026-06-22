@@ -1,15 +1,18 @@
 import { useState, useRef, useEffect } from 'react';
 import { Draggable } from '@hello-pangea/dnd';
 import type { Card as CardType } from '../types';
+import TagInput from './TagInput';
 
 interface CardProps {
   card: CardType;
   index: number;
   onEdit: (cardId: string, title: string, description: string) => void;
   onDelete: (cardId: string) => void;
+  onUpdateTags: (cardId: string, tags: string[]) => void;
+  allTags: string[];
 }
 
-export default function Card({ card, index, onEdit, onDelete }: CardProps) {
+export default function Card({ card, index, onEdit, onDelete, onUpdateTags, allTags }: CardProps) {
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [isEditingDescription, setIsEditingDescription] = useState(false);
   const [editTitle, setEditTitle] = useState(card.title);
@@ -56,31 +59,37 @@ export default function Card({ card, index, onEdit, onDelete }: CardProps) {
 
   useEffect(() => {
     if (!isEditingTitle) return;
-
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
         e.preventDefault();
         handleCancelTitle();
       }
     };
-
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [isEditingTitle, originalTitle]);
 
   useEffect(() => {
     if (!isEditingDescription) return;
-
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
         e.preventDefault();
         handleCancelDescription();
       }
     };
-
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [isEditingDescription, originalDescription]);
+
+  const handleAddTag = (tag: string) => {
+    if (!card.tags.includes(tag)) {
+      onUpdateTags(card.id, [...card.tags, tag]);
+    }
+  };
+
+  const handleRemoveTag = (tag: string) => {
+    onUpdateTags(card.id, card.tags.filter((t) => t !== tag));
+  };
 
   return (
     <Draggable draggableId={card.id} index={index}>
@@ -149,15 +158,14 @@ export default function Card({ card, index, onEdit, onDelete }: CardProps) {
                 </p>
               )}
 
-              {card.tags.length > 0 && (
-                <div className="flex flex-wrap gap-1 mt-2">
-                  {card.tags.map((tag) => (
-                    <span key={tag} className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-              )}
+              <div className="mt-2">
+                <TagInput
+                  tags={card.tags}
+                  allTags={allTags}
+                  onAddTag={handleAddTag}
+                  onRemoveTag={handleRemoveTag}
+                />
+              </div>
             </div>
             <button
               onClick={(e) => {

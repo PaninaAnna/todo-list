@@ -16,10 +16,10 @@ export default function Board({ board: initialBoard }: BoardProps) {
     const container = scrollContainerRef.current;
     if (!container) return;
 
-     const isOverScrollableChild = (e.target as HTMLElement).closest('.overflow-y-auto');
-     if (isOverScrollableChild) return;
+    const isOverScrollableChild = (e.target as HTMLElement).closest('.overflow-y-auto');
+    if (isOverScrollableChild) return;
 
-     container.scrollLeft += e.deltaY;
+    container.scrollLeft += e.deltaY;
   };
 
   const onDragEnd = (result: DropResult) => {
@@ -126,6 +126,25 @@ export default function Board({ board: initialBoard }: BoardProps) {
     setBoard(newBoard);
   };
 
+  const updateCardTags = (cardId: string, tags: string[]) => {
+    const newBoard = { ...board };
+    const columns = [...newBoard.columns];
+
+    for (const col of columns) {
+      const card = col.cards.find((c) => c.id === cardId);
+      if (card) {
+        card.tags = tags;
+        break;
+      }
+    }
+
+    setBoard({ ...newBoard, columns });
+  };
+
+  const allTags = board.columns
+    .flatMap((col) => col.cards.flatMap((card) => card.tags))
+    .filter((tag, index, arr) => arr.indexOf(tag) === index);
+
   return (
     <div className="h-screen flex flex-col">
       <div className="p-6 pb-0">
@@ -152,6 +171,8 @@ export default function Board({ board: initialBoard }: BoardProps) {
                       onDeleteCard={deleteCard}
                       onRenameColumn={renameColumn}
                       onDeleteColumn={deleteColumn}
+                      onUpdateCardTags={updateCardTags}
+                      allTags={allTags}
                     />
                     {provided.placeholder}
                   </div>
