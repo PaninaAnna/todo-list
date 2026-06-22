@@ -1,15 +1,29 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import type { Column as ColumnType } from '../types';
 import Card from './Card';
 
 interface ColumnProps {
   column: ColumnType;
   onAddCard: (columnId: string, title: string) => void;
+  onEditCard: (cardId: string, title: string, description: string) => void;
+  onDeleteCard: (cardId: string) => void;
+  onRenameColumn: (columnId: string, title: string) => void;
+  onDeleteColumn: (columnId: string) => void;
 }
 
-export default function Column({ column, onAddCard }: ColumnProps) {
+export default function Column({ column, onAddCard, onEditCard, onDeleteCard, onRenameColumn, onDeleteColumn }: ColumnProps) {
   const [isAdding, setIsAdding] = useState(false);
   const [newTitle, setNewTitle] = useState('');
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [editTitle, setEditTitle] = useState(column.title);
+  const titleInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (isEditingTitle && titleInputRef.current) {
+      titleInputRef.current.focus();
+      titleInputRef.current.select();
+    }
+  }, [isEditingTitle]);
 
   const handleAdd = () => {
     if (newTitle.trim()) {
@@ -19,12 +33,61 @@ export default function Column({ column, onAddCard }: ColumnProps) {
     }
   };
 
+  const handleSaveTitle = () => {
+    if (editTitle.trim()) {
+      onRenameColumn(column.id, editTitle);
+    }
+    setIsEditingTitle(false);
+  };
+
   return (
-    <div className="bg-gray-100 rounded-lg p-4 w-72 flex-shrink-0">
-      <h3 className="font-semibold text-gray-700 mb-3">{column.title}</h3>
-      <div className="space-y-2 mb-3">
+    <div className="bg-gray-100 rounded-lg p-4 w-72 flex-shrink-0 flex flex-col max-h-full">
+      <div className="flex justify-between items-center mb-3">
+        {isEditingTitle ? (
+          <input
+            ref={titleInputRef}
+            type="text"
+            value={editTitle}
+            onChange={(e) => setEditTitle(e.target.value)}
+            onBlur={handleSaveTitle}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') handleSaveTitle();
+              if (e.key === 'Escape') {
+                setEditTitle(column.title);
+                setIsEditingTitle(false);
+              }
+            }}
+            className="font-semibold text-gray-700 border-b border-blue-400 outline-none bg-transparent"
+          />
+        ) : (
+          <h3
+            className="font-semibold text-gray-700 cursor-pointer hover:text-blue-600"
+            onClick={() => {
+              setEditTitle(column.title);
+              setIsEditingTitle(true);
+            }}
+          >
+            {column.title}
+          </h3>
+        )}
+        <button
+          onClick={() => onDeleteColumn(column.id)}
+          className="text-gray-400 hover:text-red-500 text-sm"
+          title="Удалить колонку"
+        >
+          ✕
+        </button>
+      </div>
+
+      <div className="space-y-2 overflow-y-auto flex-1 mb-3">
         {column.cards.map((card, index) => (
-          <Card key={card.id} card={card} index={index} />
+          <Card
+            key={card.id}
+            card={card}
+            index={index}
+            onEdit={onEditCard}
+            onDelete={onDeleteCard}
+          />
         ))}
       </div>
 
@@ -66,7 +129,7 @@ export default function Column({ column, onAddCard }: ColumnProps) {
       ) : (
         <button
           onClick={() => setIsAdding(true)}
-          className="w-full text-left text-sm text-gray-400 hover:text-gray-600 hover:bg-gray-200 rounded px-2 py-1 transition-colors"
+          className="w-full text-left text-sm text-gray-400 hover:text-gray-600 hover:bg-gray-200 rounded px-2 py-1 transition-colors flex-shrink-0"
         >
           + Добавить карточку
         </button>
