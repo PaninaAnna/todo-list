@@ -35,6 +35,26 @@ export default function Board({ board: initialBoard }: BoardProps) {
     setBoard({ ...newBoard, columns });
   };
 
+  const addCard = (columnId: string, title: string) => {
+    if (!title.trim()) return;
+
+    const newCard = {
+      id: `card-${Date.now()}`,
+      title: title.trim(),
+      description: '',
+    };
+
+    const newBoard = { ...board };
+    const columns = [...newBoard.columns];
+    const column = columns.find((col) => col.id === columnId);
+
+    if (column) {
+      column.cards.push(newCard);
+    }
+
+    setBoard({ ...newBoard, columns });
+  };
+
   return (
     <div className="p-6">
       <h2 className="text-2xl font-bold text-gray-800 mb-4">{board.title}</h2>
@@ -47,7 +67,7 @@ export default function Board({ board: initialBoard }: BoardProps) {
                   ref={provided.innerRef}
                   {...provided.droppableProps}
                 >
-                  <Column column={column} />
+                  <Column column={column} onAddCard={addCard} />
                   {provided.placeholder}
                 </div>
               )}
