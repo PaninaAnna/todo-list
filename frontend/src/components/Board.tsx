@@ -6,10 +6,12 @@ import Column from './Column';
 
 interface BoardProps {
   board: BoardType;
+  onUpdateBoard: (board: BoardType) => void;
+  sidebarOpen: boolean;
+  onToggleSidebar: () => void;
 }
 
-export default function Board({ board: initialBoard }: BoardProps) {
-  const [board, setBoard] = useState<BoardType>(initialBoard);
+export default function Board({ board, onUpdateBoard, sidebarOpen, onToggleSidebar }: BoardProps) {
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
   const [isEditingColumns, setIsEditingColumns] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -45,7 +47,7 @@ export default function Board({ board: initialBoard }: BoardProps) {
     const [movedCard] = sourceCol.cards.splice(source.index, 1);
     destCol.cards.splice(destination.index, 0, movedCard);
 
-    setBoard({ ...newBoard, columns });
+    onUpdateBoard({ ...newBoard, columns });
   };
 
   const addCard = (columnId: string, title: string) => {
@@ -66,7 +68,7 @@ export default function Board({ board: initialBoard }: BoardProps) {
       column.cards.push(newCard);
     }
 
-    setBoard({ ...newBoard, columns });
+    onUpdateBoard({ ...newBoard, columns });
   };
 
   const editCard = (cardId: string, title: string, description: string) => {
@@ -82,7 +84,7 @@ export default function Board({ board: initialBoard }: BoardProps) {
       }
     }
 
-    setBoard({ ...newBoard, columns });
+    onUpdateBoard({ ...newBoard, columns });
   };
 
   const deleteCard = (cardId: string) => {
@@ -93,7 +95,7 @@ export default function Board({ board: initialBoard }: BoardProps) {
       col.cards = col.cards.filter((c) => c.id !== cardId);
     }
 
-    setBoard({ ...newBoard, columns });
+    onUpdateBoard({ ...newBoard, columns });
   };
 
   const renameColumn = (columnId: string, title: string) => {
@@ -105,14 +107,14 @@ export default function Board({ board: initialBoard }: BoardProps) {
       column.title = title;
     }
 
-    setBoard({ ...newBoard, columns });
+    onUpdateBoard({ ...newBoard, columns });
   };
 
   const deleteColumn = (columnId: string) => {
     const newBoard = { ...board };
     newBoard.columns = newBoard.columns.filter((col) => col.id !== columnId);
 
-    setBoard(newBoard);
+    onUpdateBoard(newBoard);
   };
 
   const moveColumn = (columnId: string, direction: 'left' | 'right') => {
@@ -126,7 +128,7 @@ export default function Board({ board: initialBoard }: BoardProps) {
       [columns[index], columns[index + 1]] = [columns[index + 1], columns[index]];
     }
 
-    setBoard({ ...newBoard, columns });
+    onUpdateBoard({ ...newBoard, columns });
   };
 
   const addColumn = () => {
@@ -139,7 +141,7 @@ export default function Board({ board: initialBoard }: BoardProps) {
     const newBoard = { ...board };
     newBoard.columns = [...newBoard.columns, newColumn];
 
-    setBoard(newBoard);
+    onUpdateBoard(newBoard);
   };
 
   const updateCardTags = (cardId: string, tags: string[]) => {
@@ -154,7 +156,7 @@ export default function Board({ board: initialBoard }: BoardProps) {
       }
     }
 
-    setBoard({ ...newBoard, columns });
+    onUpdateBoard({ ...newBoard, columns });
   };
 
   const allTags = useMemo(() => {
@@ -196,11 +198,20 @@ export default function Board({ board: initialBoard }: BoardProps) {
   }, [board, activeFilters]);
 
   return (
-    <div className="h-screen flex flex-col">
+    <div className="h-full flex flex-col">
       <div className="p-6 pb-0 flex-shrink-0">
-        <div className="flex justify-between items-start mb-3">
+        <div className="flex items-center gap-3 mb-3">
+          {!sidebarOpen && (
+            <button
+              onClick={onToggleSidebar}
+              className="p-2 text-gray-500 hover:text-gray-800 hover:bg-gray-100 rounded transition-colors flex-shrink-0"
+              title="Показать доски"
+            >
+              ☰
+            </button>
+          )}
           <h2 className="text-2xl font-bold text-gray-800">{board.title}</h2>
-          <div>
+          <div className="ml-auto">
             <h3 className="text-xs font-medium text-gray-400 uppercase mb-1.5">Колонки</h3>
             <div className="flex gap-1.5">
               <button

@@ -15,4 +15,20 @@ export interface Board {
   id: string;
   title: string;
   columns: Column[];
+  ownerId: string;
+  memberIds: string[];
+}
+
+export type Role = 'owner' | 'editor' | 'viewer';
+
+export interface BoardMember {
+  userId: string;
+  boardId: string;
+  role: Role;
+}
+
+export interface User {
+  id: string;
+  email: string;
+  name: string;
 }
