@@ -147,8 +147,14 @@ export default function Board({ board: initialBoard }: BoardProps) {
 
   return (
     <div className="h-screen flex flex-col">
-      <div className="p-6 pb-0">
+      <div className="p-6 pb-0 flex-shrink-0 flex justify-between items-center">
         <h2 className="text-2xl font-bold text-gray-800">{board.title}</h2>
+        <button
+          onClick={addColumn}
+          className="px-4 py-2 text-sm bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+        >
+          + Добавить колонку
+        </button>
       </div>
       <div
         ref={scrollContainerRef}
@@ -163,6 +169,7 @@ export default function Board({ board: initialBoard }: BoardProps) {
                   <div
                     ref={provided.innerRef}
                     {...provided.droppableProps}
+                    className="flex-shrink-0 flex-1 min-w-[288px]"
                   >
                     <Column
                       column={column}
@@ -179,12 +186,6 @@ export default function Board({ board: initialBoard }: BoardProps) {
                 )}
               </Droppable>
             ))}
-            <button
-              onClick={addColumn}
-              className="bg-gray-200 bg-opacity-50 rounded-lg p-4 w-72 flex-shrink-0 h-fit text-gray-500 hover:bg-gray-300 hover:text-gray-700 transition-colors text-left"
-            >
-              + Добавить колонку
-            </button>
           </div>
         </DragDropContext>
       </div>

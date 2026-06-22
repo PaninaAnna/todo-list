@@ -43,8 +43,8 @@ export default function Column({ column, onAddCard, onEditCard, onDeleteCard, on
   };
 
   return (
-    <div className="bg-gray-100 rounded-lg p-4 w-72 flex-shrink-0 flex flex-col max-h-full">
-      <div className="flex justify-between items-center mb-3">
+    <div className="bg-gray-100 rounded-lg p-4 flex flex-col max-h-full min-h-0 w-full">
+      <div className="flex justify-between items-center mb-3 flex-shrink-0">
         {isEditingTitle ? (
           <input
             ref={titleInputRef}
@@ -59,11 +59,11 @@ export default function Column({ column, onAddCard, onEditCard, onDeleteCard, on
                 setIsEditingTitle(false);
               }
             }}
-            className="font-semibold text-gray-700 border-b border-blue-400 outline-none bg-transparent"
+            className="font-semibold text-gray-700 border-b border-blue-400 outline-none bg-transparent w-full"
           />
         ) : (
           <h3
-            className="font-semibold text-gray-700 cursor-pointer hover:text-blue-600"
+            className="font-semibold text-gray-700 cursor-pointer hover:text-blue-600 truncate"
             onClick={() => {
               setEditTitle(column.title);
               setIsEditingTitle(true);
@@ -74,14 +74,14 @@ export default function Column({ column, onAddCard, onEditCard, onDeleteCard, on
         )}
         <button
           onClick={() => onDeleteColumn(column.id)}
-          className="text-gray-400 hover:text-red-500 text-sm"
+          className="text-gray-400 hover:text-red-500 text-sm flex-shrink-0 ml-2"
           title="Удалить колонку"
         >
           ✕
         </button>
       </div>
 
-      <div className="space-y-2 overflow-y-auto flex-1 mb-3">
+      <div className="space-y-2 overflow-y-auto flex-1 min-h-0 mb-3">
         {column.cards.map((card, index) => (
           <Card
             key={card.id}
@@ -96,7 +96,7 @@ export default function Column({ column, onAddCard, onEditCard, onDeleteCard, on
       </div>
 
       {isAdding ? (
-        <div className="space-y-2">
+        <div className="space-y-2 flex-shrink-0">
           <input
             type="text"
             value={newTitle}
