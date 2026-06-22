@@ -1,8 +1,21 @@
+export interface ChecklistItem {
+  id: string;
+  text: string;
+  completed: boolean;
+}
+
+export interface Checklist {
+  id: string;
+  title: string;
+  items: ChecklistItem[];
+}
+
 export interface Card {
   id: string;
   title: string;
   description: string;
   tags: string[];
+  checklists: Checklist[];
 }
 
 export interface Column {
@@ -16,6 +29,7 @@ export interface ArchivedCard {
   title: string;
   description: string;
   tags: string[];
+  checklists: Checklist[];
   columnId: string;
   columnTitle: string;
 }

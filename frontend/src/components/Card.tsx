@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Draggable } from '@hello-pangea/dnd';
-import type { Card as CardType } from '../types';
+import type { Card as CardType, Checklist } from '../types';
 import TagInput from './TagInput';
 
 interface CardProps {
@@ -9,18 +9,24 @@ interface CardProps {
   onEdit: (cardId: string, title: string, description: string) => void;
   onDelete: (cardId: string) => void;
   onUpdateTags: (cardId: string, tags: string[]) => void;
+  onUpdateChecklists: (cardId: string, checklists: Checklist[]) => void;
   allTags: string[];
   activeFilters: string[];
   onToggleFilter: (tag: string) => void;
 }
 
-export default function Card({ card, index, onEdit, onDelete, onUpdateTags, allTags, activeFilters, onToggleFilter }: CardProps) {
+export default function Card({ card, index, onEdit, onDelete, onUpdateTags, onUpdateChecklists, allTags, activeFilters, onToggleFilter }: CardProps) {
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [isEditingDescription, setIsEditingDescription] = useState(false);
   const [editTitle, setEditTitle] = useState(card.title);
   const [editDescription, setEditDescription] = useState(card.description);
   const [originalTitle, setOriginalTitle] = useState(card.title);
   const [originalDescription, setOriginalDescription] = useState(card.description);
+  const [isAddingChecklist, setIsAddingChecklist] = useState(false);
+  const [newChecklistTitle, setNewChecklistTitle] = useState('');
+  const [newItemTexts, setNewItemTexts] = useState<Record<string, string>>({});
+  const [editingChecklistId, setEditingChecklistId] = useState<string | null>(null);
+  const [editChecklistTitle, setEditChecklistTitle] = useState('');
   const titleInputRef = useRef<HTMLInputElement>(null);
   const descInputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -93,6 +99,70 @@ export default function Card({ card, index, onEdit, onDelete, onUpdateTags, allT
     onUpdateTags(card.id, card.tags.filter((t) => t !== tag));
   };
 
+  const handleAddChecklist = () => {
+    if (!newChecklistTitle.trim()) return;
+    const newChecklist: Checklist = {
+      id: `cl-${Date.now()}`,
+      title: newChecklistTitle.trim(),
+      items: [],
+    };
+    onUpdateChecklists(card.id, [...card.checklists, newChecklist]);
+    setNewChecklistTitle('');
+    setIsAddingChecklist(false);
+  };
+
+  const handleStartEditChecklist = (checklist: Checklist) => {
+    setEditingChecklistId(checklist.id);
+    setEditChecklistTitle(checklist.title);
+  };
+
+  const handleSaveChecklistTitle = () => {
+    if (editChecklistTitle.trim() && editingChecklistId) {
+      const updated = card.checklists.map((cl) =>
+        cl.id === editingChecklistId ? { ...cl, title: editChecklistTitle.trim() } : cl
+      );
+      onUpdateChecklists(card.id, updated);
+    }
+    setEditingChecklistId(null);
+  };
+
+  const handleToggleChecklistItem = (checklistId: string, itemId: string) => {
+    const updated = card.checklists.map((cl) => {
+      if (cl.id !== checklistId) return cl;
+      return {
+        ...cl,
+        items: cl.items.map((item) =>
+          item.id === itemId ? { ...item, completed: !item.completed } : item
+        ),
+      };
+    });
+    onUpdateChecklists(card.id, updated);
+  };
+
+  const handleAddChecklistItem = (checklistId: string) => {
+    const text = newItemTexts[checklistId];
+    if (!text || !text.trim()) return;
+    const newItem = { id: `item-${Date.now()}`, text: text.trim(), completed: false };
+    const updated = card.checklists.map((cl) => {
+      if (cl.id !== checklistId) return cl;
+      return { ...cl, items: [...cl.items, newItem] };
+    });
+    onUpdateChecklists(card.id, updated);
+    setNewItemTexts((prev) => ({ ...prev, [checklistId]: '' }));
+  };
+
+  const handleDeleteChecklistItem = (checklistId: string, itemId: string) => {
+    const updated = card.checklists.map((cl) => {
+      if (cl.id !== checklistId) return cl;
+      return { ...cl, items: cl.items.filter((item) => item.id !== itemId) };
+    });
+    onUpdateChecklists(card.id, updated);
+  };
+
+  const handleDeleteChecklist = (checklistId: string) => {
+    onUpdateChecklists(card.id, card.checklists.filter((cl) => cl.id !== checklistId));
+  };
+
   return (
     <Draggable draggableId={card.id} index={index}>
       {(provided, snapshot) => (
@@ -121,7 +191,7 @@ export default function Card({ card, index, onEdit, onDelete, onUpdateTags, allT
                 />
               ) : (
                 <h4
-                  className="font-medium text-gray-800 cursor-pointer hover:text-blue-600"
+                  className="font-medium text-gray-800 cursor-pointer hover:text-blue-600 break-all"
                   onClick={() => {
                     setOriginalTitle(card.title);
                     setEditTitle(card.title);
@@ -147,7 +217,7 @@ export default function Card({ card, index, onEdit, onDelete, onUpdateTags, allT
                 />
               ) : (
                 <p
-                  className={`text-sm mt-1 cursor-pointer hover:bg-gray-50 rounded px-1 -ml-1 ${
+                  className={`text-sm mt-1 cursor-pointer hover:bg-gray-50 rounded px-1 -ml-1 break-all ${
                     card.description ? 'text-gray-500' : 'text-gray-300 italic'
                   }`}
                   onClick={() => {
@@ -170,6 +240,129 @@ export default function Card({ card, index, onEdit, onDelete, onUpdateTags, allT
                   onToggleFilter={onToggleFilter}
                 />
               </div>
+
+              {card.checklists.length > 0 && (
+                <div className="mt-3 space-y-2">
+                  {card.checklists.map((checklist) => {
+                    const completedCount = checklist.items.filter((i) => i.completed).length;
+                    const totalCount = checklist.items.length;
+                    return (
+                      <div key={checklist.id} className="bg-gray-50 rounded p-2">
+                        <div className="flex items-center justify-between mb-1">
+                          {editingChecklistId === checklist.id ? (
+                            <input
+                              type="text"
+                              value={editChecklistTitle}
+                              onChange={(e) => setEditChecklistTitle(e.target.value)}
+                              onBlur={handleSaveChecklistTitle}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') handleSaveChecklistTitle();
+                                if (e.key === 'Escape') {
+                                  setEditingChecklistId(null);
+                                }
+                              }}
+                              className="text-xs font-medium text-gray-600 border-b border-blue-400 outline-none bg-transparent flex-1"
+                              autoFocus
+                            />
+                          ) : (
+                            <h5
+                              className="text-xs font-medium text-gray-600 cursor-pointer hover:text-blue-600 break-all"
+                              onClick={() => handleStartEditChecklist(checklist)}
+                            >
+                              {checklist.title}
+                            </h5>
+                          )}
+                          <button
+                            onClick={() => handleDeleteChecklist(checklist.id)}
+                            className="text-gray-400 hover:text-red-500 text-xs flex-shrink-0 ml-1"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                        {totalCount > 0 && (
+                          <div className="w-full bg-gray-200 rounded-full h-1.5 mb-2">
+                            <div
+                              className="bg-green-500 h-1.5 rounded-full transition-all"
+                              style={{ width: `${(completedCount / totalCount) * 100}%` }}
+                            />
+                          </div>
+                        )}
+                        <div className="space-y-1">
+                          {checklist.items.map((item) => (
+                            <div key={item.id} className="flex items-center gap-1.5">
+                              <input
+                                type="checkbox"
+                                checked={item.completed}
+                                onChange={() => handleToggleChecklistItem(checklist.id, item.id)}
+                                className="w-3.5 h-3.5 rounded border-gray-300 flex-shrink-0"
+                              />
+                              <span className={`text-xs flex-1 break-all ${item.completed ? 'text-gray-400 line-through' : 'text-gray-600'}`}>
+                                {item.text}
+                              </span>
+                              <button
+                                onClick={() => handleDeleteChecklistItem(checklist.id, item.id)}
+                                className="text-gray-300 hover:text-red-400 text-xs opacity-0 hover:opacity-100 flex-shrink-0"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="flex gap-1 mt-1.5">
+                          <input
+                            type="text"
+                            value={newItemTexts[checklist.id] || ''}
+                            onChange={(e) =>
+                              setNewItemTexts((prev) => ({ ...prev, [checklist.id]: e.target.value }))
+                            }
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') handleAddChecklistItem(checklist.id);
+                            }}
+                            placeholder="Добавить пункт..."
+                            className="flex-1 text-xs border border-gray-200 rounded px-1.5 py-0.5 outline-none focus:border-blue-300"
+                          />
+                          <button
+                            onClick={() => handleAddChecklistItem(checklist.id)}
+                            className="text-xs text-blue-500 hover:text-blue-700 flex-shrink-0"
+                          >
+                            Ок
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {isAddingChecklist ? (
+                <div className="mt-2 bg-gray-50 rounded p-2">
+                  <input
+                    type="text"
+                    value={newChecklistTitle}
+                    onChange={(e) => setNewChecklistTitle(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleAddChecklist();
+                      if (e.key === 'Escape') {
+                        setNewChecklistTitle('');
+                        setIsAddingChecklist(false);
+                      }
+                    }}
+                    onBlur={() => {
+                      if (!newChecklistTitle.trim()) setIsAddingChecklist(false);
+                    }}
+                    placeholder="Название чек-листа..."
+                    className="w-full text-xs border border-gray-200 rounded px-1.5 py-0.5 outline-none focus:border-blue-300"
+                    autoFocus
+                  />
+                </div>
+              ) : (
+                <button
+                  onClick={() => setIsAddingChecklist(true)}
+                  className="mt-2 text-xs text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded px-1.5 py-0.5 transition-colors"
+                >
+                  + Чек-лист
+                </button>
+              )}
             </div>
             <button
               onClick={(e) => {

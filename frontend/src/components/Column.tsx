@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import type { Column as ColumnType } from '../types';
+import type { Column as ColumnType, Checklist } from '../types';
 import Card from './Card';
 
 interface ColumnProps {
@@ -13,13 +13,14 @@ interface ColumnProps {
   onDeleteColumn: (columnId: string) => void;
   onMoveColumn: (columnId: string, direction: 'left' | 'right') => void;
   onUpdateCardTags: (cardId: string, tags: string[]) => void;
+  onUpdateCardChecklists: (cardId: string, checklists: Checklist[]) => void;
   allTags: string[];
   activeFilters: string[];
   onToggleFilter: (tag: string) => void;
   isEditing: boolean;
 }
 
-export default function Column({ column, index, totalColumns, onAddCard, onEditCard, onDeleteCard, onRenameColumn, onDeleteColumn, onMoveColumn, onUpdateCardTags, allTags, activeFilters, onToggleFilter, isEditing }: ColumnProps) {
+export default function Column({ column, index, totalColumns, onAddCard, onEditCard, onDeleteCard, onRenameColumn, onDeleteColumn, onMoveColumn, onUpdateCardTags, onUpdateCardChecklists, allTags, activeFilters, onToggleFilter, isEditing }: ColumnProps) {
   const [isAdding, setIsAdding] = useState(false);
   const [newTitle, setNewTitle] = useState('');
   const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -121,6 +122,7 @@ export default function Column({ column, index, totalColumns, onAddCard, onEditC
             onEdit={onEditCard}
             onDelete={onDeleteCard}
             onUpdateTags={onUpdateCardTags}
+            onUpdateChecklists={onUpdateCardChecklists}
             allTags={allTags}
             activeFilters={activeFilters}
             onToggleFilter={onToggleFilter}

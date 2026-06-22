@@ -1,7 +1,7 @@
 import { useState, useRef, useMemo, useEffect } from 'react';
 import { DragDropContext, Droppable } from '@hello-pangea/dnd';
 import type { DropResult } from '@hello-pangea/dnd';
-import type { Board as BoardType } from '../types';
+import type { Board as BoardType, Checklist } from '../types';
 import Column from './Column';
 import ArchiveModal from './ArchiveModal';
 
@@ -60,6 +60,7 @@ export default function Board({ board, onUpdateBoard, sidebarOpen, onToggleSideb
       title: title.trim(),
       description: '',
       tags: [],
+      checklists: [],
     };
 
     const newBoard = { ...board };
@@ -104,6 +105,7 @@ export default function Board({ board, onUpdateBoard, sidebarOpen, onToggleSideb
             title: removedCard.title,
             description: removedCard.description,
             tags: removedCard.tags,
+            checklists: removedCard.checklists,
             columnId: col.id,
             columnTitle: col.title,
           },
@@ -181,6 +183,21 @@ export default function Board({ board, onUpdateBoard, sidebarOpen, onToggleSideb
     onUpdateBoard({ ...newBoard, columns });
   };
 
+  const updateCardChecklists = (cardId: string, checklists: Checklist[]) => {
+    const newBoard = { ...board };
+    const columns = [...newBoard.columns];
+
+    for (const col of columns) {
+      const card = col.cards.find((c) => c.id === cardId);
+      if (card) {
+        card.checklists = checklists;
+        break;
+      }
+    }
+
+    onUpdateBoard({ ...newBoard, columns });
+  };
+
   const restoreCard = (cardId: string) => {
     const newBoard = { ...board };
     const cardIndex = newBoard.archivedCards.findIndex((c) => c.id === cardId);
@@ -200,6 +217,7 @@ export default function Board({ board, onUpdateBoard, sidebarOpen, onToggleSideb
         title: restoredCard.title,
         description: restoredCard.description,
         tags: restoredCard.tags,
+        checklists: restoredCard.checklists,
       });
     }
 
@@ -365,6 +383,7 @@ export default function Board({ board, onUpdateBoard, sidebarOpen, onToggleSideb
                       onDeleteColumn={deleteColumn}
                       onMoveColumn={moveColumn}
                       onUpdateCardTags={updateCardTags}
+                      onUpdateCardChecklists={updateCardChecklists}
                       allTags={allTags}
                       activeFilters={activeFilters}
                       onToggleFilter={toggleFilter}
