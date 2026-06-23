@@ -12,14 +12,13 @@ interface BoardProps {
   sidebarOpen: boolean;
   onToggleSidebar: () => void;
   user: any;
-  userRole: string;
   onShowProfile: () => void;
   showProfile: boolean;
   onCloseProfile: () => void;
   onLogout: () => void;
 }
 
-export default function Board({ board, onUpdateBoard, sidebarOpen, onToggleSidebar, user, userRole, onShowProfile, showProfile, onCloseProfile, onLogout }: BoardProps) {
+export default function Board({ board, onUpdateBoard, sidebarOpen, onToggleSidebar, user, onShowProfile, showProfile, onCloseProfile, onLogout }: BoardProps) {
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isEditingColumns, setIsEditingColumns] = useState(false);
@@ -326,39 +325,35 @@ export default function Board({ board, onUpdateBoard, sidebarOpen, onToggleSideb
             />
           </div>
           <div className="flex gap-1 ml-auto">
-            {userRole !== 'viewer' && (
-              <>
-                <button
-                  onClick={() => setIsEditingColumns(!isEditingColumns)}
-                  className={`w-8 h-8 flex items-center justify-center rounded-lg transition-colors border ${
-                    isEditingColumns
-                      ? 'bg-blue-100 text-blue-700 border-blue-300'
-                      : 'bg-gray-100 text-gray-600 border-gray-200 hover:bg-gray-200'
-                  }`}
-                  title="Редактировать колонки"
-                >
-                  {isEditingColumns ? (
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
-                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                    </svg>
-                  ) : (
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
-                      <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
-                    </svg>
-                  )}
-                </button>
-                <button
-                  onClick={() => setShowArchive(true)}
-                  className="w-8 h-8 flex items-center justify-center bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors border border-gray-200"
-                  title="Архив"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
-                    <path d="M4 3a2 2 0 100 4h12a2 2 0 100-4H4z" />
-                    <path fillRule="evenodd" d="M3 8h14v7a2 2 0 01-2 2H5a2 2 0 01-2-2V8zm5 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" clipRule="evenodd" />
-                  </svg>
-                </button>
-              </>
-            )}
+            <button
+              onClick={() => setIsEditingColumns(!isEditingColumns)}
+              className={`w-8 h-8 flex items-center justify-center rounded-lg transition-colors border ${
+                isEditingColumns
+                  ? 'bg-blue-100 text-blue-700 border-blue-300'
+                  : 'bg-gray-100 text-gray-600 border-gray-200 hover:bg-gray-200'
+              }`}
+              title="Редактировать колонки"
+            >
+              {isEditingColumns ? (
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+              ) : (
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+                  <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                </svg>
+              )}
+            </button>
+            <button
+              onClick={() => setShowArchive(true)}
+              className="w-8 h-8 flex items-center justify-center bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors border border-gray-200"
+              title="Архив"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+                <path d="M4 3a2 2 0 100 4h12a2 2 0 100-4H4z" />
+                <path fillRule="evenodd" d="M3 8h14v7a2 2 0 01-2 2H5a2 2 0 01-2-2V8zm5 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" clipRule="evenodd" />
+              </svg>
+            </button>
             <div className="relative">
               <button
                 onClick={onShowProfile}
@@ -435,14 +430,14 @@ export default function Board({ board, onUpdateBoard, sidebarOpen, onToggleSideb
                       activeFilters={activeFilters}
                       onToggleFilter={toggleFilter}
                       isEditing={isEditingColumns}
-                      readonly={userRole === 'viewer'}
+                      readonly={false}
                     />
                     {provided.placeholder}
                   </div>
                 )}
               </Droppable>
             ))}
-            {isEditingColumns && userRole !== 'viewer' && (
+            {isEditingColumns && (
               <button
                 onClick={addColumn}
                 className="bg-gray-100 bg-opacity-60 rounded-lg p-4 flex-shrink-0 h-fit text-gray-400 hover:text-gray-600 hover:bg-gray-200 transition-colors border-2 border-dashed border-gray-300 hover:border-gray-400 flex items-center justify-center"

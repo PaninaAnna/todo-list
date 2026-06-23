@@ -65,12 +65,6 @@ export default function App() {
 
   const activeBoard = boards.find((b) => b.id === activeBoardId) || boards[0];
 
-  const userRole = activeBoard
-    ? activeBoard.ownerId === user.id
-      ? 'owner'
-      : 'editor'
-    : 'viewer';
-
   const handleUpdateBoard = (updatedBoard: BoardType) => {
     setBoards((prev) =>
       prev.map((b) => (b.id === updatedBoard.id ? updatedBoard : b))
@@ -165,9 +159,7 @@ export default function App() {
         <div className="bg-white border-b border-gray-200 px-6 py-3 flex justify-between items-center">
           <h1 className="text-lg font-semibold text-gray-800">Мои доски</h1>
           <div className="flex items-center gap-2">
-            <button onClick={handleLogout} className="text-sm text-gray-500 hover:text-gray-700">
-              Выйти
-            </button>
+            <button onClick={handleLogout} className="text-sm text-gray-500 hover:text-gray-700">Выйти</button>
             <div className="relative">
               <button
                 onClick={() => setShowProfile(!showProfile)}
@@ -301,7 +293,6 @@ export default function App() {
             sidebarOpen={sidebarOpen}
             onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
             user={user}
-            userRole={userRole}
             onShowProfile={() => setShowProfile(true)}
             showProfile={showProfile}
             onCloseProfile={() => setShowProfile(false)}

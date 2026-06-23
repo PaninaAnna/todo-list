@@ -37,18 +37,6 @@ function parseBoard(board: any) {
   };
 }
 
-function getBoardWithMembers(boardId: string) {
-  const board = db.prepare('SELECT * FROM boards WHERE id = ?').get(boardId) as any;
-  if (!board) return null;
-  const members = db.prepare(
-    `SELECT bm.id, bm.role, bm.userId, u.email, u.name 
-     FROM board_members bm 
-     JOIN users u ON bm.userId = u.id 
-     WHERE bm.boardId = ?`
-  ).all(boardId) as any[];
-  return { ...board, members };
-}
-
 router.post('/seed', async (req: Request, res: Response) => {
   try {
     db.prepare('DELETE FROM checklist_items').run();
@@ -57,31 +45,28 @@ router.post('/seed', async (req: Request, res: Response) => {
     db.prepare('DELETE FROM columns').run();
     db.prepare('DELETE FROM archived_cards').run();
     db.prepare('DELETE FROM archived_columns').run();
-    db.prepare('DELETE FROM board_members').run();
     db.prepare('DELETE FROM boards').run();
     db.prepare('DELETE FROM users').run();
 
-    const ownerId = uuidv4();
-    const editorId = uuidv4();
-    const viewerId = uuidv4();
+    const userId = uuidv4();
     const boardId = uuidv4();
-
     const hash = bcrypt.hashSync('Test123!', 10);
 
-    db.prepare('INSERT INTO users (id, email, password, name) VALUES (?, ?, ?, ?)').run(ownerId, 'owner@test.com', hash, 'Владелец');
-    db.prepare('INSERT INTO users (id, email, password, name) VALUES (?, ?, ?, ?)').run(editorId, 'editor@test.com', hash, 'Редактор');
-    db.prepare('INSERT INTO users (id, email, password, name) VALUES (?, ?, ?, ?)').run(viewerId, 'viewer@test.com', hash, 'Читатель');
+    db.prepare('INSERT INTO users (id, email, password, name) VALUES (?, ?, ?, ?)').run(userId, 'test@test.com', hash, 'Тестовый пользователь');
 
-    db.prepare('INSERT INTO boards (id, title, ownerId) VALUES (?, ?, ?)').run(boardId, 'Тестовая доска', ownerId);
-    db.prepare('INSERT INTO board_members (id, userId, boardId, role) VALUES (?, ?, ?, ?)').run(uuidv4(), editorId, boardId, 'editor');
-    db.prepare('INSERT INTO board_members (id, userId, boardId, role) VALUES (?, ?, ?, ?)').run(uuidv4(), viewerId, boardId, 'viewer');
+    db.prepare('INSERT INTO boards (id, title, ownerId) VALUES (?, ?, ?)').run(boardId, 'Тестовая доска', userId);
 
     const col1Id = uuidv4();
     const col2Id = uuidv4();
+    const col3Id = uuidv4();
     db.prepare('INSERT INTO columns (id, title, "order", boardId) VALUES (?, ?, 0, ?)').run(col1Id, 'To Do', boardId);
-    db.prepare('INSERT INTO columns (id, title, "order", boardId) VALUES (?, ?, 1, ?)').run(col2Id, 'Done', boardId);
+    db.prepare('INSERT INTO columns (id, title, "order", boardId) VALUES (?, ?, 1, ?)').run(col2Id, 'In Progress', boardId);
+    db.prepare('INSERT INTO columns (id, title, "order", boardId) VALUES (?, ?, 2, ?)').run(col3Id, 'Done', boardId);
 
-    db.prepare('INSERT INTO cards (id, title, description, tags, "order", columnId) VALUES (?, ?, ?, ?, 0, ?)').run(uuidv4(), 'Пример задачи', 'Описание задачи', '["фронтенд"]', col1Id);
+    db.prepare('INSERT INTO cards (id, title, description, tags, "order", columnId) VALUES (?, ?, ?, ?, 0, ?)').run(uuidv4(), 'Настроить проект', 'Vite + React + Tailwind', '["фронтенд"]', col1Id);
+    db.prepare('INSERT INTO cards (id, title, description, tags, "order", columnId) VALUES (?, ?, ?, ?, 1, ?)').run(uuidv4(), 'Сделать вёрстку', '', '["дизайн"]', col1Id);
+    db.prepare('INSERT INTO cards (id, title, description, tags, "order", columnId) VALUES (?, ?, ?, ?, 0, ?)').run(uuidv4(), 'Drag & drop', 'Перетаскивание карточек', '["фронтенд", "логика"]', col2Id);
+    db.prepare('INSERT INTO cards (id, title, description, tags, "order", columnId) VALUES (?, ?, ?, ?, 0, ?)').run(uuidv4(), 'Репозиторий', 'Создан и настроен', '["инфра"]', col3Id);
 
     res.json({ success: true, message: 'Seed completed' });
   } catch (error: any) {
@@ -92,93 +77,11 @@ router.post('/seed', async (req: Request, res: Response) => {
 
 router.get('/', auth, async (req: AuthRequest, res: Response) => {
   try {
-    const boards = db.prepare(
-      `SELECT DISTINCT b.* FROM boards b
-       LEFT JOIN board_members bm ON b.id = bm.boardId
-       WHERE b.ownerId = ? OR bm.userId = ?`
-    ).all(req.userId, req.userId) as any[];
-
+    const boards = db.prepare('SELECT * FROM boards WHERE ownerId = ?').all(req.userId) as any[];
     res.json(boards.map(parseBoard));
   } catch (error: any) {
     console.error('Get boards error:', error.message || error);
     res.status(500).json({ error: 'Failed to fetch boards' });
-  }
-});
-
-router.get('/:id/members', auth, async (req: AuthRequest, res: Response) => {
-  try {
-    const { id } = req.params;
-    const board = getBoardWithMembers(id);
-    if (!board) {
-      res.status(404).json({ error: 'Board not found' });
-      return;
-    }
-    res.json(board);
-  } catch (error: any) {
-    console.error('Get members error:', error.message || error);
-    res.status(500).json({ error: 'Failed to fetch members' });
-  }
-});
-
-router.post('/:id/members', auth, async (req: AuthRequest, res: Response) => {
-  try {
-    const { id } = req.params;
-    const { email, role } = req.body;
-
-    const board = db.prepare('SELECT * FROM boards WHERE id = ?').get(id) as any;
-    if (!board) {
-      res.status(404).json({ error: 'Board not found' });
-      return;
-    }
-
-    if (board.ownerId !== req.userId) {
-      res.status(403).json({ error: 'Only owner can manage members' });
-      return;
-    }
-
-    const user = db.prepare('SELECT id FROM users WHERE email = ?').get(email) as any;
-    if (!user) {
-      res.status(404).json({ error: 'User not found' });
-      return;
-    }
-
-    const existing = db.prepare('SELECT id FROM board_members WHERE userId = ? AND boardId = ?').get(user.id, id) as any;
-    if (existing) {
-      db.prepare('UPDATE board_members SET role = ? WHERE userId = ? AND boardId = ?').run(role, user.id, id);
-    } else {
-      db.prepare('INSERT INTO board_members (id, userId, boardId, role) VALUES (?, ?, ?, ?)').run(uuidv4(), user.id, id, role);
-    }
-
-    const updated = getBoardWithMembers(id);
-    res.json(updated);
-  } catch (error: any) {
-    console.error('Add member error:', error.message || error);
-    res.status(500).json({ error: 'Failed to add member' });
-  }
-});
-
-router.delete('/:id/members/:userId', auth, async (req: AuthRequest, res: Response) => {
-  try {
-    const { id, userId } = req.params;
-
-    const board = db.prepare('SELECT * FROM boards WHERE id = ?').get(id) as any;
-    if (!board) {
-      res.status(404).json({ error: 'Board not found' });
-      return;
-    }
-
-    if (board.ownerId !== req.userId) {
-      res.status(403).json({ error: 'Only owner can manage members' });
-      return;
-    }
-
-    db.prepare('DELETE FROM board_members WHERE userId = ? AND boardId = ?').run(userId, id);
-
-    const updated = getBoardWithMembers(id);
-    res.json(updated);
-  } catch (error: any) {
-    console.error('Remove member error:', error.message || error);
-    res.status(500).json({ error: 'Failed to remove member' });
   }
 });
 
@@ -196,9 +99,7 @@ router.post('/', auth, async (req: AuthRequest, res: Response) => {
     
     const insertBoard = db.transaction(() => {
       db.prepare('INSERT INTO boards (id, title, ownerId) VALUES (?, ?, ?)').run(id, title, req.userId);
-      db.prepare('INSERT INTO columns (id, title, "order", boardId) VALUES (?, ?, 0, ?)').run(
-        columnId, 'To Do', id
-      );
+      db.prepare('INSERT INTO columns (id, title, "order", boardId) VALUES (?, ?, 0, ?)').run(columnId, 'To Do', id);
     });
     
     insertBoard();
@@ -223,13 +124,8 @@ router.put('/:id', auth, async (req: AuthRequest, res: Response) => {
     }
 
     if (board.ownerId !== req.userId) {
-      const member = db.prepare(
-        'SELECT role FROM board_members WHERE userId = ? AND boardId = ?'
-      ).get(req.userId, id) as any;
-      if (!member || member.role === 'viewer') {
-        res.status(403).json({ error: 'Forbidden' });
-        return;
-      }
+      res.status(403).json({ error: 'Forbidden' });
+      return;
     }
 
     if (updatedAt && board.updatedAt !== updatedAt) {
@@ -248,25 +144,17 @@ router.put('/:id', auth, async (req: AuthRequest, res: Response) => {
         db.prepare('DELETE FROM columns WHERE boardId = ?').run(id);
         for (let i = 0; i < columns.length; i++) {
           const col = columns[i];
-          db.prepare('INSERT INTO columns (id, title, "order", boardId) VALUES (?, ?, ?, ?)').run(
-            col.id, col.title, i, id
-          );
+          db.prepare('INSERT INTO columns (id, title, "order", boardId) VALUES (?, ?, ?, ?)').run(col.id, col.title, i, id);
 
           for (let j = 0; j < (col.cards || []).length; j++) {
             const card = col.cards[j];
-            db.prepare(
-              'INSERT INTO cards (id, title, description, tags, "order", columnId) VALUES (?, ?, ?, ?, ?, ?)'
-            ).run(card.id, card.title, card.description || '', JSON.stringify(card.tags || []), j, col.id);
+            db.prepare('INSERT INTO cards (id, title, description, tags, "order", columnId) VALUES (?, ?, ?, ?, ?, ?)').run(card.id, card.title, card.description || '', JSON.stringify(card.tags || []), j, col.id);
 
             for (const checklist of card.checklists || []) {
-              db.prepare('INSERT INTO checklists (id, title, cardId) VALUES (?, ?, ?)').run(
-                checklist.id, checklist.title, card.id
-              );
+              db.prepare('INSERT INTO checklists (id, title, cardId) VALUES (?, ?, ?)').run(checklist.id, checklist.title, card.id);
 
               for (const item of checklist.items || []) {
-                db.prepare(
-                  'INSERT INTO checklist_items (id, text, completed, checklistId) VALUES (?, ?, ?, ?)'
-                ).run(item.id, item.text, item.completed ? 1 : 0, checklist.id);
+                db.prepare('INSERT INTO checklist_items (id, text, completed, checklistId) VALUES (?, ?, ?, ?)').run(item.id, item.text, item.completed ? 1 : 0, checklist.id);
               }
             }
           }
@@ -276,21 +164,14 @@ router.put('/:id', auth, async (req: AuthRequest, res: Response) => {
       if (archivedCards !== undefined) {
         db.prepare('DELETE FROM archived_cards WHERE boardId = ?').run(id);
         for (const card of archivedCards) {
-          db.prepare(
-            'INSERT INTO archived_cards (id, title, description, tags, checklists, columnId, columnTitle, boardId) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
-          ).run(
-            card.id, card.title, card.description || '', JSON.stringify(card.tags || []),
-            JSON.stringify(card.checklists || []), card.columnId, card.columnTitle, id
-          );
+          db.prepare('INSERT INTO archived_cards (id, title, description, tags, checklists, columnId, columnTitle, boardId) VALUES (?, ?, ?, ?, ?, ?, ?, ?)').run(card.id, card.title, card.description || '', JSON.stringify(card.tags || []), JSON.stringify(card.checklists || []), card.columnId, card.columnTitle, id);
         }
       }
 
       if (archivedColumns !== undefined) {
         db.prepare('DELETE FROM archived_columns WHERE boardId = ?').run(id);
         for (const col of archivedColumns) {
-          db.prepare(
-            'INSERT INTO archived_columns (id, title, cards, boardId) VALUES (?, ?, ?, ?)'
-          ).run(col.id, col.title, JSON.stringify(col.cards || []), id);
+          db.prepare('INSERT INTO archived_columns (id, title, cards, boardId) VALUES (?, ?, ?, ?)').run(col.id, col.title, JSON.stringify(col.cards || []), id);
         }
       }
     });
@@ -316,7 +197,7 @@ router.delete('/:id', auth, async (req: AuthRequest, res: Response) => {
     }
 
     if (board.ownerId !== req.userId) {
-      res.status(403).json({ error: 'Only owner can delete board' });
+      res.status(403).json({ error: 'Forbidden' });
       return;
     }
 
