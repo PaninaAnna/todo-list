@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Board from './components/Board';
 import BoardSettingsModal from './components/BoardSettingsModal';
 import LoginPage from './components/LoginPage';
+import ProfileModal from './components/ProfileModal';
 import { getMe } from './api/auth';
 import { getBoards, createBoard, updateBoard, deleteBoard as apiDeleteBoard } from './api/boards';
 import { clearToken } from './api/client';
@@ -16,6 +17,7 @@ export default function App() {
   const [newBoardTitle, setNewBoardTitle] = useState('');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [settingsBoardId, setSettingsBoardId] = useState<string | null>(null);
+  const [showProfile, setShowProfile] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -118,6 +120,7 @@ export default function App() {
     setUser(null);
     setBoards([]);
     setActiveBoardId('');
+    setShowProfile(false);
   };
 
   const settingsBoard = settingsBoardId
@@ -141,9 +144,25 @@ export default function App() {
       <div className="h-screen flex flex-col bg-gray-50">
         <div className="bg-white border-b border-gray-200 px-6 py-3 flex justify-between items-center">
           <h1 className="text-lg font-semibold text-gray-800">Мои доски</h1>
-          <button onClick={handleLogout} className="text-sm text-gray-500 hover:text-gray-700">
-            Выйти
-          </button>
+          <div className="flex items-center gap-2">
+            <button onClick={handleLogout} className="text-sm text-gray-500 hover:text-gray-700">
+              Выйти
+            </button>
+            <div className="relative">
+              <button
+                onClick={() => setShowProfile(!showProfile)}
+                className="w-8 h-8 flex items-center justify-center bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors border border-gray-200"
+                title="Профиль"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+                  <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                </svg>
+              </button>
+              {showProfile && (
+                <ProfileModal user={user} onClose={() => setShowProfile(false)} onLogout={handleLogout} />
+              )}
+            </div>
+          </div>
         </div>
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
@@ -261,6 +280,11 @@ export default function App() {
             onUpdateBoard={handleUpdateBoard}
             sidebarOpen={sidebarOpen}
             onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
+            user={user}
+            onShowProfile={() => setShowProfile(true)}
+            showProfile={showProfile}
+            onCloseProfile={() => setShowProfile(false)}
+            onLogout={handleLogout}
           />
         )}
       </div>

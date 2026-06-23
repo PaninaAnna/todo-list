@@ -1,3 +1,4 @@
+import ProfileModal from './ProfileModal';
 import { useState, useRef, useMemo, useEffect } from 'react';
 import { DragDropContext, Droppable } from '@hello-pangea/dnd';
 import type { DropResult } from '@hello-pangea/dnd';
@@ -8,11 +9,16 @@ import ArchiveModal from './ArchiveModal';
 interface BoardProps {
   board: BoardType;
   onUpdateBoard: (board: BoardType) => void;
-  sidebarOpen: boolean;
+  sidebarOpen: boolean; 
   onToggleSidebar: () => void;
+  user: any;
+  onShowProfile: () => void;
+  showProfile: boolean;
+  onCloseProfile: () => void;
+  onLogout: () => void;
 }
 
-export default function Board({ board, onUpdateBoard, sidebarOpen, onToggleSidebar }: BoardProps) {
+export default function Board({ board, onUpdateBoard, sidebarOpen, onToggleSidebar, user, onShowProfile, showProfile, onCloseProfile, onLogout }: BoardProps) {
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isEditingColumns, setIsEditingColumns] = useState(false);
@@ -348,14 +354,20 @@ export default function Board({ board, onUpdateBoard, sidebarOpen, onToggleSideb
                 <path fillRule="evenodd" d="M3 8h14v7a2 2 0 01-2 2H5a2 2 0 01-2-2V8zm5 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" clipRule="evenodd" />
               </svg>
             </button>
-            <button
-              className="w-8 h-8 flex items-center justify-center bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors border border-gray-200"
-              title="Профиль"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
-                <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
-              </svg>
-            </button>
+            <div className="relative">
+              <button
+                onClick={onShowProfile}
+                className="w-8 h-8 flex items-center justify-center bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors border border-gray-200"
+                title="Профиль"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+                  <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                </svg>
+              </button>
+              {showProfile && (
+                <ProfileModal user={user} onClose={onCloseProfile} onLogout={onLogout} />
+              )}
+            </div>
           </div>
         </div>
         {allTags.length > 0 && (

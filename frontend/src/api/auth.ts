@@ -15,3 +15,7 @@ export async function login(email: string, password: string) {
 export async function getMe() {
   return api.get('/auth/me');
 }
+
+export async function updateProfile(name: string) {
+  return api.put('/auth/profile', { name });
+}

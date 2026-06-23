@@ -79,4 +79,24 @@ router.get('/me', auth, async (req: AuthRequest, res: Response) => {
   }
 });
 
+router.put('/profile', auth, async (req: AuthRequest, res: Response) => {
+  try {
+    const { name } = req.body;
+
+    if (!name || !name.trim()) {
+      res.status(400).json({ error: 'Name is required' });
+      return;
+    }
+
+    db.prepare('UPDATE users SET name = ?, updatedAt = datetime(\'now\') WHERE id = ?').run(
+      name.trim(), req.userId
+    );
+
+    res.json({ success: true });
+  } catch (error: any) {
+    console.error('Update profile error:', error.message || error);
+    res.status(500).json({ error: 'Failed to update profile' });
+  }
+});
+
 export default router;
