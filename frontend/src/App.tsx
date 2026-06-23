@@ -65,6 +65,12 @@ export default function App() {
 
   const activeBoard = boards.find((b) => b.id === activeBoardId) || boards[0];
 
+  const userRole = activeBoard
+    ? activeBoard.ownerId === user.id
+      ? 'owner'
+      : 'editor'
+    : 'viewer';
+
   const handleUpdateBoard = (updatedBoard: BoardType) => {
     setBoards((prev) =>
       prev.map((b) => (b.id === updatedBoard.id ? updatedBoard : b))
@@ -295,6 +301,7 @@ export default function App() {
             sidebarOpen={sidebarOpen}
             onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
             user={user}
+            userRole={userRole}
             onShowProfile={() => setShowProfile(true)}
             showProfile={showProfile}
             onCloseProfile={() => setShowProfile(false)}

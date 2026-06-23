@@ -37,6 +37,18 @@ function parseBoard(board: any) {
   };
 }
 
+function getBoardWithMembers(boardId: string) {
+  const board = db.prepare('SELECT * FROM boards WHERE id = ?').get(boardId) as any;
+  if (!board) return null;
+  const members = db.prepare(
+    `SELECT bm.id, bm.role, bm.userId, u.email, u.name 
+     FROM board_members bm 
+     JOIN users u ON bm.userId = u.id 
+     WHERE bm.boardId = ?`
+  ).all(boardId) as any[];
+  return { ...board, members };
+}
+
 router.post('/seed', async (req: Request, res: Response) => {
   try {
     db.prepare('DELETE FROM checklist_items').run();
@@ -93,6 +105,83 @@ router.get('/', auth, async (req: AuthRequest, res: Response) => {
   }
 });
 
+router.get('/:id/members', auth, async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const board = getBoardWithMembers(id);
+    if (!board) {
+      res.status(404).json({ error: 'Board not found' });
+      return;
+    }
+    res.json(board);
+  } catch (error: any) {
+    console.error('Get members error:', error.message || error);
+    res.status(500).json({ error: 'Failed to fetch members' });
+  }
+});
+
+router.post('/:id/members', auth, async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { email, role } = req.body;
+
+    const board = db.prepare('SELECT * FROM boards WHERE id = ?').get(id) as any;
+    if (!board) {
+      res.status(404).json({ error: 'Board not found' });
+      return;
+    }
+
+    if (board.ownerId !== req.userId) {
+      res.status(403).json({ error: 'Only owner can manage members' });
+      return;
+    }
+
+    const user = db.prepare('SELECT id FROM users WHERE email = ?').get(email) as any;
+    if (!user) {
+      res.status(404).json({ error: 'User not found' });
+      return;
+    }
+
+    const existing = db.prepare('SELECT id FROM board_members WHERE userId = ? AND boardId = ?').get(user.id, id) as any;
+    if (existing) {
+      db.prepare('UPDATE board_members SET role = ? WHERE userId = ? AND boardId = ?').run(role, user.id, id);
+    } else {
+      db.prepare('INSERT INTO board_members (id, userId, boardId, role) VALUES (?, ?, ?, ?)').run(uuidv4(), user.id, id, role);
+    }
+
+    const updated = getBoardWithMembers(id);
+    res.json(updated);
+  } catch (error: any) {
+    console.error('Add member error:', error.message || error);
+    res.status(500).json({ error: 'Failed to add member' });
+  }
+});
+
+router.delete('/:id/members/:userId', auth, async (req: AuthRequest, res: Response) => {
+  try {
+    const { id, userId } = req.params;
+
+    const board = db.prepare('SELECT * FROM boards WHERE id = ?').get(id) as any;
+    if (!board) {
+      res.status(404).json({ error: 'Board not found' });
+      return;
+    }
+
+    if (board.ownerId !== req.userId) {
+      res.status(403).json({ error: 'Only owner can manage members' });
+      return;
+    }
+
+    db.prepare('DELETE FROM board_members WHERE userId = ? AND boardId = ?').run(userId, id);
+
+    const updated = getBoardWithMembers(id);
+    res.json(updated);
+  } catch (error: any) {
+    console.error('Remove member error:', error.message || error);
+    res.status(500).json({ error: 'Failed to remove member' });
+  }
+});
+
 router.post('/', auth, async (req: AuthRequest, res: Response) => {
   try {
     const { title } = req.body;
@@ -131,6 +220,16 @@ router.put('/:id', auth, async (req: AuthRequest, res: Response) => {
     if (!board) {
       res.status(404).json({ error: 'Board not found' });
       return;
+    }
+
+    if (board.ownerId !== req.userId) {
+      const member = db.prepare(
+        'SELECT role FROM board_members WHERE userId = ? AND boardId = ?'
+      ).get(req.userId, id) as any;
+      if (!member || member.role === 'viewer') {
+        res.status(403).json({ error: 'Forbidden' });
+        return;
+      }
     }
 
     if (updatedAt && board.updatedAt !== updatedAt) {
@@ -213,6 +312,11 @@ router.delete('/:id', auth, async (req: AuthRequest, res: Response) => {
     const board = db.prepare('SELECT * FROM boards WHERE id = ?').get(id) as any;
     if (!board) {
       res.status(404).json({ error: 'Board not found' });
+      return;
+    }
+
+    if (board.ownerId !== req.userId) {
+      res.status(403).json({ error: 'Only owner can delete board' });
       return;
     }
 

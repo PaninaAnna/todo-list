@@ -18,9 +18,10 @@ interface ColumnProps {
   activeFilters: string[];
   onToggleFilter: (tag: string) => void;
   isEditing: boolean;
+  readonly: boolean;
 }
 
-export default function Column({ column, index, totalColumns, onAddCard, onEditCard, onDeleteCard, onRenameColumn, onDeleteColumn, onMoveColumn, onUpdateCardTags, onUpdateCardChecklists, allTags, activeFilters, onToggleFilter, isEditing }: ColumnProps) {
+export default function Column({ column, index, totalColumns, onAddCard, onEditCard, onDeleteCard, onRenameColumn, onDeleteColumn, onMoveColumn, onUpdateCardTags, onUpdateCardChecklists, allTags, activeFilters, onToggleFilter, isEditing, readonly }: ColumnProps) {
   const [isAdding, setIsAdding] = useState(false);
   const [newTitle, setNewTitle] = useState('');
   const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -53,7 +54,7 @@ export default function Column({ column, index, totalColumns, onAddCard, onEditC
     <div className={`bg-gray-100 rounded-lg p-4 flex flex-col max-h-full min-h-0 w-full transition-colors ${isEditing ? 'ring-2 ring-blue-300' : ''}`}>
       <div className="flex justify-between items-start mb-1 flex-shrink-0">
         <div className="flex-1 min-w-0">
-          {isEditingTitle ? (
+          {isEditingTitle && !readonly ? (
             <input
               ref={titleInputRef}
               type="text"
@@ -71,17 +72,19 @@ export default function Column({ column, index, totalColumns, onAddCard, onEditC
             />
           ) : (
             <h3
-              className="font-semibold text-gray-700 cursor-pointer hover:text-blue-600 truncate"
+              className={`font-semibold text-gray-700 truncate ${readonly ? '' : 'cursor-pointer hover:text-blue-600'}`}
               onClick={() => {
-                setEditTitle(column.title);
-                setIsEditingTitle(true);
+                if (!readonly) {
+                  setEditTitle(column.title);
+                  setIsEditingTitle(true);
+                }
               }}
             >
               {column.title}
             </h3>
           )}
         </div>
-        {isEditing && (
+        {isEditing && !readonly && (
           <button
             onClick={() => onDeleteColumn(column.id)}
             className="text-red-400 hover:text-red-600 text-sm flex-shrink-0 ml-2"
@@ -92,7 +95,7 @@ export default function Column({ column, index, totalColumns, onAddCard, onEditC
         )}
       </div>
 
-      {isEditing && (
+      {isEditing && !readonly && (
         <div className="flex justify-between mb-2 flex-shrink-0">
           <button
             onClick={() => onMoveColumn(column.id, 'left')}
@@ -119,13 +122,14 @@ export default function Column({ column, index, totalColumns, onAddCard, onEditC
             key={card.id}
             card={card}
             index={index}
-            onEdit={onEditCard}
-            onDelete={onDeleteCard}
-            onUpdateTags={onUpdateCardTags}
-            onUpdateChecklists={onUpdateCardChecklists}
+            onEdit={readonly ? () => {} : onEditCard}
+            onDelete={readonly ? () => {} : onDeleteCard}
+            onUpdateTags={readonly ? () => {} : onUpdateCardTags}
+            onUpdateChecklists={readonly ? () => {} : onUpdateCardChecklists}
             allTags={allTags}
             activeFilters={activeFilters}
             onToggleFilter={onToggleFilter}
+            readonly={readonly}
           />
         ))}
         {column.cards.length === 0 && (
@@ -133,48 +137,50 @@ export default function Column({ column, index, totalColumns, onAddCard, onEditC
         )}
       </div>
 
-      {isAdding ? (
-        <div className="space-y-2 flex-shrink-0">
-          <input
-            type="text"
-            value={newTitle}
-            onChange={(e) => setNewTitle(e.target.value)}
-            placeholder="Название карточки"
-            className="w-full px-2 py-1 text-sm border border-gray-300 rounded"
-            autoFocus
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') handleAdd();
-              if (e.key === 'Escape') {
-                setIsAdding(false);
-                setNewTitle('');
-              }
-            }}
-          />
-          <div className="flex gap-1">
-            <button
-              onClick={handleAdd}
-              className="px-2 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600"
-            >
-              Добавить
-            </button>
-            <button
-              onClick={() => {
-                setIsAdding(false);
-                setNewTitle('');
+      {!readonly && (
+        isAdding ? (
+          <div className="space-y-2 flex-shrink-0">
+            <input
+              type="text"
+              value={newTitle}
+              onChange={(e) => setNewTitle(e.target.value)}
+              placeholder="Название карточки"
+              className="w-full px-2 py-1 text-sm border border-gray-300 rounded"
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleAdd();
+                if (e.key === 'Escape') {
+                  setIsAdding(false);
+                  setNewTitle('');
+                }
               }}
-              className="px-2 py-1 text-xs text-gray-500 hover:text-gray-700"
-            >
-              Отмена
-            </button>
+            />
+            <div className="flex gap-1">
+              <button
+                onClick={handleAdd}
+                className="px-2 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600"
+              >
+                Добавить
+              </button>
+              <button
+                onClick={() => {
+                  setIsAdding(false);
+                  setNewTitle('');
+                }}
+                className="px-2 py-1 text-xs text-gray-500 hover:text-gray-700"
+              >
+                Отмена
+              </button>
+            </div>
           </div>
-        </div>
-      ) : (
-        <button
-          onClick={() => setIsAdding(true)}
-          className="w-full text-left text-sm text-gray-400 hover:text-gray-600 hover:bg-gray-200 rounded px-2 py-1 transition-colors flex-shrink-0"
-        >
-          + Добавить карточку
-        </button>
+        ) : (
+          <button
+            onClick={() => setIsAdding(true)}
+            className="w-full text-left text-sm text-gray-400 hover:text-gray-600 hover:bg-gray-200 rounded px-2 py-1 transition-colors flex-shrink-0"
+          >
+            + Добавить карточку
+          </button>
+        )
       )}
     </div>
   );

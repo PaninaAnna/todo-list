@@ -13,9 +13,10 @@ interface CardProps {
   allTags: string[];
   activeFilters: string[];
   onToggleFilter: (tag: string) => void;
+  readonly: boolean;
 }
 
-export default function Card({ card, index, onEdit, onDelete, onUpdateTags, onUpdateChecklists, allTags, activeFilters, onToggleFilter }: CardProps) {
+export default function Card({ card, index, onEdit, onDelete, onUpdateTags, onUpdateChecklists, allTags, activeFilters, onToggleFilter, readonly }: CardProps) {
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [isEditingDescription, setIsEditingDescription] = useState(false);
   const [editTitle, setEditTitle] = useState(card.title);
@@ -164,7 +165,7 @@ export default function Card({ card, index, onEdit, onDelete, onUpdateTags, onUp
   };
 
   return (
-    <Draggable draggableId={card.id} index={index}>
+    <Draggable draggableId={card.id} index={index} isDragDisabled={readonly}>
       {(provided, snapshot) => (
         <div
           ref={provided.innerRef}
@@ -176,7 +177,7 @@ export default function Card({ card, index, onEdit, onDelete, onUpdateTags, onUp
         >
           <div className="flex justify-between items-start">
             <div className="flex-1 min-w-0">
-              {isEditingTitle ? (
+              {isEditingTitle && !readonly ? (
                 <input
                   ref={titleInputRef}
                   type="text"
@@ -191,18 +192,20 @@ export default function Card({ card, index, onEdit, onDelete, onUpdateTags, onUp
                 />
               ) : (
                 <h4
-                  className="font-medium text-gray-800 cursor-pointer hover:text-blue-600 break-all"
+                  className={`font-medium text-gray-800 break-all ${readonly ? '' : 'cursor-pointer hover:text-blue-600'}`}
                   onClick={() => {
-                    setOriginalTitle(card.title);
-                    setEditTitle(card.title);
-                    setIsEditingTitle(true);
+                    if (!readonly) {
+                      setOriginalTitle(card.title);
+                      setEditTitle(card.title);
+                      setIsEditingTitle(true);
+                    }
                   }}
                 >
                   {card.title || 'Без названия'}
                 </h4>
               )}
 
-              {isEditingDescription ? (
+              {isEditingDescription && !readonly ? (
                 <textarea
                   ref={descInputRef}
                   value={editDescription}
@@ -217,13 +220,15 @@ export default function Card({ card, index, onEdit, onDelete, onUpdateTags, onUp
                 />
               ) : (
                 <p
-                  className={`text-sm mt-1 cursor-pointer hover:bg-gray-50 rounded px-1 -ml-1 break-all ${
+                  className={`text-sm mt-1 break-all ${readonly ? '' : 'cursor-pointer hover:bg-gray-50 rounded px-1 -ml-1'} ${
                     card.description ? 'text-gray-500' : 'text-gray-300 italic'
                   }`}
                   onClick={() => {
-                    setOriginalDescription(card.description);
-                    setEditDescription(card.description);
-                    setIsEditingDescription(true);
+                    if (!readonly) {
+                      setOriginalDescription(card.description);
+                      setEditDescription(card.description);
+                      setIsEditingDescription(true);
+                    }
                   }}
                 >
                   {card.description || 'Добавить описание...'}
@@ -234,8 +239,8 @@ export default function Card({ card, index, onEdit, onDelete, onUpdateTags, onUp
                 <TagInput
                   tags={card.tags}
                   allTags={allTags}
-                  onAddTag={handleAddTag}
-                  onRemoveTag={handleRemoveTag}
+                  onAddTag={readonly ? () => {} : handleAddTag}
+                  onRemoveTag={readonly ? () => {} : handleRemoveTag}
                   activeFilters={activeFilters}
                   onToggleFilter={onToggleFilter}
                 />
@@ -249,7 +254,7 @@ export default function Card({ card, index, onEdit, onDelete, onUpdateTags, onUp
                     return (
                       <div key={checklist.id} className="bg-gray-50 rounded p-2">
                         <div className="flex items-center justify-between mb-1">
-                          {editingChecklistId === checklist.id ? (
+                          {editingChecklistId === checklist.id && !readonly ? (
                             <input
                               type="text"
                               value={editChecklistTitle}
@@ -266,18 +271,22 @@ export default function Card({ card, index, onEdit, onDelete, onUpdateTags, onUp
                             />
                           ) : (
                             <h5
-                              className="text-xs font-medium text-gray-600 cursor-pointer hover:text-blue-600 break-all"
-                              onClick={() => handleStartEditChecklist(checklist)}
+                              className={`text-xs font-medium text-gray-600 break-all ${readonly ? '' : 'cursor-pointer hover:text-blue-600'}`}
+                              onClick={() => {
+                                if (!readonly) handleStartEditChecklist(checklist);
+                              }}
                             >
                               {checklist.title}
                             </h5>
                           )}
-                          <button
-                            onClick={() => handleDeleteChecklist(checklist.id)}
-                            className="text-gray-400 hover:text-red-500 text-xs flex-shrink-0 ml-1"
-                          >
-                            ✕
-                          </button>
+                          {!readonly && (
+                            <button
+                              onClick={() => handleDeleteChecklist(checklist.id)}
+                              className="text-gray-400 hover:text-red-500 text-xs flex-shrink-0 ml-1"
+                            >
+                              ✕
+                            </button>
+                          )}
                         </div>
                         {totalCount > 0 && (
                           <div className="w-full bg-gray-200 rounded-full h-1.5 mb-2">
@@ -294,86 +303,95 @@ export default function Card({ card, index, onEdit, onDelete, onUpdateTags, onUp
                                 type="checkbox"
                                 checked={item.completed}
                                 onChange={() => handleToggleChecklistItem(checklist.id, item.id)}
+                                disabled={readonly}
                                 className="w-3.5 h-3.5 rounded border-gray-300 flex-shrink-0"
                               />
                               <span className={`text-xs flex-1 break-all ${item.completed ? 'text-gray-400 line-through' : 'text-gray-600'}`}>
                                 {item.text}
                               </span>
-                              <button
-                                onClick={() => handleDeleteChecklistItem(checklist.id, item.id)}
-                                className="text-gray-300 hover:text-red-400 text-xs opacity-0 hover:opacity-100 flex-shrink-0"
-                              >
-                                ✕
-                              </button>
+                              {!readonly && (
+                                <button
+                                  onClick={() => handleDeleteChecklistItem(checklist.id, item.id)}
+                                  className="text-gray-300 hover:text-red-400 text-xs opacity-0 hover:opacity-100 flex-shrink-0"
+                                >
+                                  ✕
+                                </button>
+                              )}
                             </div>
                           ))}
                         </div>
-                        <div className="flex gap-1 mt-1.5">
-                          <input
-                            type="text"
-                            value={newItemTexts[checklist.id] || ''}
-                            onChange={(e) =>
-                              setNewItemTexts((prev) => ({ ...prev, [checklist.id]: e.target.value }))
-                            }
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') handleAddChecklistItem(checklist.id);
-                            }}
-                            placeholder="Добавить пункт..."
-                            className="flex-1 text-xs border border-gray-200 rounded px-1.5 py-0.5 outline-none focus:border-blue-300"
-                          />
-                          <button
-                            onClick={() => handleAddChecklistItem(checklist.id)}
-                            className="text-xs text-blue-500 hover:text-blue-700 flex-shrink-0"
-                          >
-                            Ок
-                          </button>
-                        </div>
+                        {!readonly && (
+                          <div className="flex gap-1 mt-1.5">
+                            <input
+                              type="text"
+                              value={newItemTexts[checklist.id] || ''}
+                              onChange={(e) =>
+                                setNewItemTexts((prev) => ({ ...prev, [checklist.id]: e.target.value }))
+                              }
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') handleAddChecklistItem(checklist.id);
+                              }}
+                              placeholder="Добавить пункт..."
+                              className="flex-1 text-xs border border-gray-200 rounded px-1.5 py-0.5 outline-none focus:border-blue-300"
+                            />
+                            <button
+                              onClick={() => handleAddChecklistItem(checklist.id)}
+                              className="text-xs text-blue-500 hover:text-blue-700 flex-shrink-0"
+                            >
+                              Ок
+                            </button>
+                          </div>
+                        )}
                       </div>
                     );
                   })}
                 </div>
               )}
 
-              {isAddingChecklist ? (
-                <div className="mt-2 bg-gray-50 rounded p-2">
-                  <input
-                    type="text"
-                    value={newChecklistTitle}
-                    onChange={(e) => setNewChecklistTitle(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') handleAddChecklist();
-                      if (e.key === 'Escape') {
-                        setNewChecklistTitle('');
-                        setIsAddingChecklist(false);
-                      }
-                    }}
-                    onBlur={() => {
-                      if (!newChecklistTitle.trim()) setIsAddingChecklist(false);
-                    }}
-                    placeholder="Название чек-листа..."
-                    className="w-full text-xs border border-gray-200 rounded px-1.5 py-0.5 outline-none focus:border-blue-300"
-                    autoFocus
-                  />
-                </div>
-              ) : (
-                <button
-                  onClick={() => setIsAddingChecklist(true)}
-                  className="mt-2 text-xs text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded px-1.5 py-0.5 transition-colors"
-                >
-                  + Чек-лист
-                </button>
+              {!readonly && (
+                isAddingChecklist ? (
+                  <div className="mt-2 bg-gray-50 rounded p-2">
+                    <input
+                      type="text"
+                      value={newChecklistTitle}
+                      onChange={(e) => setNewChecklistTitle(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') handleAddChecklist();
+                        if (e.key === 'Escape') {
+                          setNewChecklistTitle('');
+                          setIsAddingChecklist(false);
+                        }
+                      }}
+                      onBlur={() => {
+                        if (!newChecklistTitle.trim()) setIsAddingChecklist(false);
+                      }}
+                      placeholder="Название чек-листа..."
+                      className="w-full text-xs border border-gray-200 rounded px-1.5 py-0.5 outline-none focus:border-blue-300"
+                      autoFocus
+                    />
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setIsAddingChecklist(true)}
+                    className="mt-2 text-xs text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded px-1.5 py-0.5 transition-colors"
+                  >
+                    + Чек-лист
+                  </button>
+                )
               )}
             </div>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onDelete(card.id);
-              }}
-              className="text-gray-400 hover:text-red-500 ml-2 flex-shrink-0 text-sm"
-              title="Удалить"
-            >
-              ✕
-            </button>
+            {!readonly && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete(card.id);
+                }}
+                className="text-gray-400 hover:text-red-500 ml-2 flex-shrink-0 text-sm"
+                title="Удалить"
+              >
+                ✕
+              </button>
+            )}
           </div>
         </div>
       )}
