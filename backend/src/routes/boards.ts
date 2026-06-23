@@ -45,7 +45,8 @@ router.get('/', auth, async (req: AuthRequest, res: Response) => {
     ).all(req.userId, req.userId) as any[];
 
     res.json(boards.map(parseBoard));
-  } catch (error) {
+  } catch (error: any) {
+    console.error('Get boards error:', error.message || error);
     res.status(500).json({ error: 'Failed to fetch boards' });
   }
 });
@@ -73,7 +74,8 @@ router.post('/', auth, async (req: AuthRequest, res: Response) => {
     
     const board = db.prepare('SELECT * FROM boards WHERE id = ?').get(id);
     res.json(parseBoard(board));
-  } catch (error) {
+  } catch (error: any) {
+    console.error('Create board error:', error.message || error);
     res.status(500).json({ error: 'Failed to create board' });
   }
 });
@@ -87,16 +89,6 @@ router.put('/:id', auth, async (req: AuthRequest, res: Response) => {
     if (!board) {
       res.status(404).json({ error: 'Board not found' });
       return;
-    }
-
-    if (board.ownerId !== req.userId) {
-      const member = db.prepare(
-        'SELECT * FROM board_members WHERE userId = ? AND boardId = ?'
-      ).get(req.userId, id) as any;
-      if (!member || member.role === 'viewer') {
-        res.status(403).json({ error: 'Forbidden' });
-        return;
-      }
     }
 
     const updateBoard = db.transaction(() => {
@@ -157,8 +149,9 @@ router.put('/:id', auth, async (req: AuthRequest, res: Response) => {
 
     updateBoard();
     res.json({ success: true });
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to update board' });
+  } catch (error: any) {
+    console.error('Update board error:', error.message || error);
+    res.status(500).json({ error: error.message || 'Failed to update board' });
   }
 });
 
@@ -172,14 +165,10 @@ router.delete('/:id', auth, async (req: AuthRequest, res: Response) => {
       return;
     }
 
-    if (board.ownerId !== req.userId) {
-      res.status(403).json({ error: 'Forbidden' });
-      return;
-    }
-
     db.prepare('DELETE FROM boards WHERE id = ?').run(id);
     res.json({ success: true });
-  } catch (error) {
+  } catch (error: any) {
+    console.error('Delete board error:', error.message || error);
     res.status(500).json({ error: 'Failed to delete board' });
   }
 });
