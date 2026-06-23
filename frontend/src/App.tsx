@@ -75,7 +75,21 @@ export default function App() {
       columns: updatedBoard.columns,
       archivedCards: updatedBoard.archivedCards,
       archivedColumns: updatedBoard.archivedColumns,
-    }).catch(console.error);
+      updatedAt: (updatedBoard as any).updatedAt,
+    })
+      .then((response: any) => {
+        if (response && response.updatedAt) {
+          setBoards((prev) =>
+            prev.map((b) => (b.id === response.id ? { ...b, updatedAt: response.updatedAt } : b))
+          );
+        }
+      })
+      .catch((error: any) => {
+        if (error.message === 'Board was modified by another user. Please refresh.') {
+          alert('Доска была изменена другим пользователем. Обновите страницу.');
+        }
+        console.error(error);
+      });
   };
 
   const handleAddBoard = async () => {

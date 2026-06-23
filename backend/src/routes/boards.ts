@@ -1,5 +1,6 @@
-import { Router, Response } from 'express';
+import { Router, Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
+import bcrypt from 'bcryptjs';
 import db from '../db';
 import { auth, AuthRequest } from '../middleware/auth';
 
@@ -35,6 +36,47 @@ function parseBoard(board: any) {
     archivedColumns,
   };
 }
+
+router.post('/seed', async (req: Request, res: Response) => {
+  try {
+    db.prepare('DELETE FROM checklist_items').run();
+    db.prepare('DELETE FROM checklists').run();
+    db.prepare('DELETE FROM cards').run();
+    db.prepare('DELETE FROM columns').run();
+    db.prepare('DELETE FROM archived_cards').run();
+    db.prepare('DELETE FROM archived_columns').run();
+    db.prepare('DELETE FROM board_members').run();
+    db.prepare('DELETE FROM boards').run();
+    db.prepare('DELETE FROM users').run();
+
+    const ownerId = uuidv4();
+    const editorId = uuidv4();
+    const viewerId = uuidv4();
+    const boardId = uuidv4();
+
+    const hash = bcrypt.hashSync('Test123!', 10);
+
+    db.prepare('INSERT INTO users (id, email, password, name) VALUES (?, ?, ?, ?)').run(ownerId, 'owner@test.com', hash, 'Владелец');
+    db.prepare('INSERT INTO users (id, email, password, name) VALUES (?, ?, ?, ?)').run(editorId, 'editor@test.com', hash, 'Редактор');
+    db.prepare('INSERT INTO users (id, email, password, name) VALUES (?, ?, ?, ?)').run(viewerId, 'viewer@test.com', hash, 'Читатель');
+
+    db.prepare('INSERT INTO boards (id, title, ownerId) VALUES (?, ?, ?)').run(boardId, 'Тестовая доска', ownerId);
+    db.prepare('INSERT INTO board_members (id, userId, boardId, role) VALUES (?, ?, ?, ?)').run(uuidv4(), editorId, boardId, 'editor');
+    db.prepare('INSERT INTO board_members (id, userId, boardId, role) VALUES (?, ?, ?, ?)').run(uuidv4(), viewerId, boardId, 'viewer');
+
+    const col1Id = uuidv4();
+    const col2Id = uuidv4();
+    db.prepare('INSERT INTO columns (id, title, "order", boardId) VALUES (?, ?, 0, ?)').run(col1Id, 'To Do', boardId);
+    db.prepare('INSERT INTO columns (id, title, "order", boardId) VALUES (?, ?, 1, ?)').run(col2Id, 'Done', boardId);
+
+    db.prepare('INSERT INTO cards (id, title, description, tags, "order", columnId) VALUES (?, ?, ?, ?, 0, ?)').run(uuidv4(), 'Пример задачи', 'Описание задачи', '["фронтенд"]', col1Id);
+
+    res.json({ success: true, message: 'Seed completed' });
+  } catch (error: any) {
+    console.error('Seed error:', error.message || error);
+    res.status(500).json({ error: 'Seed failed' });
+  }
+});
 
 router.get('/', auth, async (req: AuthRequest, res: Response) => {
   try {
@@ -83,7 +125,7 @@ router.post('/', auth, async (req: AuthRequest, res: Response) => {
 router.put('/:id', auth, async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
-    const { title, columns, archivedCards, archivedColumns } = req.body;
+    const { title, columns, archivedCards, archivedColumns, updatedAt } = req.body;
 
     const board = db.prepare('SELECT * FROM boards WHERE id = ?').get(id) as any;
     if (!board) {
@@ -91,9 +133,16 @@ router.put('/:id', auth, async (req: AuthRequest, res: Response) => {
       return;
     }
 
+    if (updatedAt && board.updatedAt !== updatedAt) {
+      res.status(409).json({ error: 'Board was modified by another user. Please refresh.' });
+      return;
+    }
+
     const updateBoard = db.transaction(() => {
       if (title) {
         db.prepare(`UPDATE boards SET title = ?, updatedAt = datetime('now') WHERE id = ?`).run(title, id);
+      } else {
+        db.prepare(`UPDATE boards SET updatedAt = datetime('now') WHERE id = ?`).run(id);
       }
 
       if (columns) {
@@ -148,7 +197,9 @@ router.put('/:id', auth, async (req: AuthRequest, res: Response) => {
     });
 
     updateBoard();
-    res.json({ success: true });
+    
+    const updatedBoard = db.prepare('SELECT * FROM boards WHERE id = ?').get(id);
+    res.json(parseBoard(updatedBoard));
   } catch (error: any) {
     console.error('Update board error:', error.message || error);
     res.status(500).json({ error: error.message || 'Failed to update board' });
