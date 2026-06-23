@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import Board from './components/Board';
 import BoardSettingsModal from './components/BoardSettingsModal';
 import LoginPage from './components/LoginPage';
