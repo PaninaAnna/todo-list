@@ -93,7 +93,7 @@ router.put('/:id', auth, async (req: AuthRequest, res: Response) => {
 
     const updateBoard = db.transaction(() => {
       if (title) {
-        db.prepare('UPDATE boards SET title = ?, updatedAt = datetime("now") WHERE id = ?').run(title, id);
+        db.prepare(`UPDATE boards SET title = ?, updatedAt = datetime('now') WHERE id = ?`).run(title, id);
       }
 
       if (columns) {
